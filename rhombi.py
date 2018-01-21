@@ -121,14 +121,14 @@ def getRhomboidVertices(key, lines):
     return (ret1, ret2, ret3, ret4)
 
 
-frameCount = 1200
+frameCount = 1
 height = 6400
 width = 6400
 length = 80
 cGreen = (0, 255, 0)
 cLine = (0, 0, 0)
 cBackground = (255, 93, 15)
-lineCount = 110
+lineCount = 20
 
 def z2imgPoint(z):
     return (width / 2 + int(np.real(z * length)), height / 2 - int(np.imag(z * length)))
@@ -201,12 +201,15 @@ for k, f in zip(ks, fs):
     print("k[0] = {} f(1) = {} line[0] = {}".format(k[0], f(1), lines[0]))
     img = drawImg(lines)
     img = cv2.resize(img, (1600, 1600))
-#    cv2.imshow('image',img)
-#    cv2.waitKey(0)
-#    cv2.destroyAllWindows()
+    if frameCount < 10:
+        cv2.imshow('image',img)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
     ims.append(img)
 
-imageio.mimwrite(uri = 'rhomboids.mp4', ims = ims)#, duration = 0.05)
+
+if frameCount > 10:
+    imageio.mimwrite(uri = 'rhomboids.mp4', ims = ims)#, duration = 0.05)
 #imageio.mimwrite(uri = 'rhomboids.mp4', ims = ims + list(reversed(ims)))#, duration = 0.05)
 #imageio.mimwrite(uri = 'rhomboids.gif', ims = ims + list(reversed(ims)), duration = 0.04)
 
