@@ -34,7 +34,7 @@ linesGroup = [rhombi.genLines(k, f) for k, f in zip(ks, fs)]
 fs = [rhombi.star((np.sqrt(5) + 1) / 2, 1 - t) for t in ts]
 linesGroup += [rhombi.genLines(k, f) for k, f in zip(ks, fs)]
 
-fs = [rhombi.star((np.sqrt(5) + 1) / 2 + t, 0) for t in ts]
+fs = [rhombi.star((np.sqrt(5) + 1) / 2 + t / 4, 0) for t in ts]
 linesGroup += [rhombi.genLines(k, f) for k, f in zip(ks, fs)]
 
 
