@@ -122,13 +122,26 @@ def star(sideCount, center = 0):
         return retx
     return ret
 
+def starNew(z, center = 0):
+    def ret(x):
+        angle = z * fullAngle * 1j 
+        retx =  np.exp(angle * x) + x * center * np.exp(angle * x) 
+        return retx
+    return ret
+
 def curry(z):
     def ret(x):
-        angle = (np.sqrt(5) - 1) / 2 * fullAngle * 1j + z * fullAngle * 1j 
-        retx =  np.exp(angle * x)
+        angle = (np.sqrt(5) - 1) / 2 * fullAngle * 1j + z / 10 * fullAngle * 1j 
         retx =  x * np.exp(angle * x)
         retx =  (1 - z + x * z) * np.exp(angle * x)
+        retx =  np.exp(angle * x)
         return retx
+    return ret
+
+def curryOld(z):
+    def ret(x):
+        angle = (np.sqrt(5) - 1) / 2 * fullAngle * 1j + 5 * z * fullAngle * 1j 
+        return np.exp(angle * x)
     return ret
     
 

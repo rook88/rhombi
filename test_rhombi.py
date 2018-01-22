@@ -14,7 +14,7 @@ rhombi.backgroundColor = (0, 0, 0)
 rhombi.rhombusEdgeThickness = 8
 
 
-lineCount = 70
+lineCount = 20
 
 """
 fs = [(lambda x : np.exp(angle * (x + 0.1 * n))) for n in range(frameCount)]
@@ -29,22 +29,23 @@ fs = [rhombi.star(13) for n in range(frameCount)]
 """
 
 
-frameCount = 600
+frameCount = 1
 ts = list(np.linspace(0, 1, frameCount + 1))[:-1]
 ks = [list(np.linspace(1, lineCount, lineCount)) for n in range(frameCount)]
 fs = [rhombi.star((np.sqrt(5) + 1) / 2 - (1 - t) / 2, 1) for t in ts]
 linesGroup = [rhombi.genLines(k, f) for k, f in zip(ks, fs)]
 
-frameCount = 300
+frameCount = 1
 ts = list(np.linspace(0, 1, frameCount + 1))[:-1]
 ks = [list(np.linspace(1, lineCount, lineCount)) for n in range(frameCount)]
 fs = [rhombi.star((np.sqrt(5) + 1) / 2, (1 - t) * (1 - t)) for t in ts]
 linesGroup += [rhombi.genLines(k, f) for k, f in zip(ks, fs)]
 
-frameCount = 600
+frameCount = 60
 ts = list(np.linspace(0, 1, frameCount + 1))[:-1]
 ks = [list(np.linspace(1, lineCount, lineCount)) for n in range(frameCount)]
-fs = [rhombi.star((np.sqrt(5) + 1) / 2 - t / 2, 0) for t in ts]
+ks = [list(np.linspace(-1, 1, 25)) for n in range(frameCount)]
+fs = [rhombi.curryOld(t) for t in ts]
 linesGroup += [rhombi.genLines(k, f) for k, f in zip(ks, fs)]
 
 
