@@ -13,41 +13,33 @@ rhombusEdgeColorEnd = np.array([255, 93, 15])
 rhombi.backgroundColor = (0, 0, 0)
 rhombi.rhombusEdgeThickness = 8
 
+lineCount = 70
 
-lineCount = 20
+linesGroup = []
 
-"""
-fs = [(lambda x : np.exp(angle * (x + 0.1 * n))) for n in range(frameCount)]
-fs = [rhombi.curry(z) for z in list(np.linspace(0, 1, frameCount + 1))][:-1]
-
-
-ks = [range(frameCount) for n in range(frameCount)]
-
-ks = [list(np.linspace(1, n + 3, n + 3)) for n in range(frameCount)]
-fs = [rhombi.star(13) for n in range(frameCount)]
-
-"""
-
-
-frameCount = 1
-ts = list(np.linspace(0, 1, frameCount + 1))[:-1]
-ks = [list(np.linspace(1, lineCount, lineCount)) for n in range(frameCount)]
-fs = [rhombi.star((np.sqrt(5) + 1) / 2 - (1 - t) / 2, 1) for t in ts]
-linesGroup = [rhombi.genLines(k, f) for k, f in zip(ks, fs)]
-
-frameCount = 1
-ts = list(np.linspace(0, 1, frameCount + 1))[:-1]
-ks = [list(np.linspace(1, lineCount, lineCount)) for n in range(frameCount)]
-fs = [rhombi.star((np.sqrt(5) + 1) / 2, (1 - t) * (1 - t)) for t in ts]
-linesGroup += [rhombi.genLines(k, f) for k, f in zip(ks, fs)]
+theta = (np.sqrt(5) - 1) / 2
 
 frameCount = 60
-ts = list(np.linspace(0, 1, frameCount + 1))[:-1]
-ks = [list(np.linspace(1, lineCount, lineCount)) for n in range(frameCount)]
-ks = [list(np.linspace(-1, 1, 25)) for n in range(frameCount)]
-fs = [rhombi.curryOld(t) for t in ts]
+ts = list(np.linspace(0, 1, frameCount))
+ks = [list(np.linspace(-1, 1, lineCount)) for n in range(frameCount)]
+
+fs = [rhombi.curryNew(angle = theta, offset = 1, offsetAngle = 0.2 + t) for t in ts]
 linesGroup += [rhombi.genLines(k, f) for k, f in zip(ks, fs)]
 
+fs = [rhombi.curryNew(angle = theta, offset = 1 - t, offsetAngle = 1.2 + t) for t in ts]
+linesGroup += [rhombi.genLines(k, f) for k, f in zip(ks, fs)]
+
+fs = [rhombi.curryNew(angle = theta, offset = 0, offsetAngle = 2.2 + t) for t in ts]
+linesGroup += [rhombi.genLines(k, f) for k, f in zip(ks, fs)]
+
+"""
+Toimii:
+frameCount = 4
+ts = list(np.linspace(0, 1, frameCount))
+ks = [list(np.linspace(-1, 1, lineCount)) for n in range(frameCount)]
+fs = [rhombi.curryNew(angle = theta, offsetAngle = t) for t in ts]
+linesGroup += [rhombi.genLines(k, f) for k, f in zip(ks, fs)]
+"""
 
 print("------------------------------------------------------------")
 print len(linesGroup)
@@ -60,6 +52,7 @@ for i, lines in zip(range(len(linesGroup)), linesGroup):
     print("frame {}/{} framePct = {} line[0] = {}".format(i + 1, len(linesGroup), framePct, lines[0]))
     rhombi.rhombusEdgeColor = rhombusEdgeColorStart * (1 - framePct) + rhombusEdgeColorEnd * framePct
     img = rhombi.drawImg(lines = lines)
+#    img = rhombi.drawLines(lines = lines)
     img = cv2.resize(img, (1280, 960))
     if frameCount < 10:
         cv2.imshow('image',img)

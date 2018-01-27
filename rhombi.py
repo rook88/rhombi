@@ -4,6 +4,7 @@ import cv2
 
 
 fullAngle = 2 * np.pi
+a2pi = 2 * np.pi * 1j
 rightAngle = 0.5 * np.pi
 origin = 0 + 0j
 
@@ -86,10 +87,13 @@ def z2imgPoint(z):
 def drawRhomboid(img, v1, v2):
     cv2.line(img = img, pt1 = z2imgPoint(v1), pt2 = z2imgPoint(v2), color = rhombusEdgeColor, thickness = rhombusEdgeThickness)
 
-def genLines(ps, f):
+def genLines(ps, f, g = None):
     lines = []
     for i in ps:
-        l = line(f(i), derivative(f, i))
+        if g == None:
+            l = line(f(i), derivative(f, i))
+        else:
+            l = line(f(i), g(i))
 #       print(l)
         lines.append(l)
     return lines
@@ -107,6 +111,16 @@ def drawImg(lines):
 #    print("k = {} Count of Rhomboids {}".format(k, len(faceKeys)))
     return img
 
+
+def drawLines(lines):
+    img =  np.zeros((imgHeight,imgWidth,3), np.uint8)
+    img[:,:] = backgroundColor
+    for line in lines:
+        pt1 = line.somePoint - 30 * line.direction
+        pt2 = line.somePoint + 30 * line.direction
+        drawRhomboid(img, pt1, pt2)
+    return img
+
 def genK(n):
 #    return 2.5 - 5.0 * n / frameCount
     return 4.0 ** (1.0 * (frameCount - 1 - n) / (frameCount - 1)) * 7.0 ** (1.0 * n / (frameCount - 1))
@@ -122,10 +136,10 @@ def star(sideCount, center = 0):
         return retx
     return ret
 
-def starNew(z, center = 0):
+def starNew(angle, offset):
     def ret(x):
         angle = z * fullAngle * 1j 
-        retx =  np.exp(angle * x) + x * center * np.exp(angle * x) 
+        retx =  np.exp(angle * x) * offset
         return retx
     return ret
 
@@ -140,10 +154,39 @@ def curry(z):
 
 def curryOld(z):
     def ret(x):
-        angle = (np.sqrt(5) - 1) / 2 * fullAngle * 1j + 5 * z * fullAngle * 1j 
+        angle = (np.sqrt(5) - 1) / 2 * fullAngle * 1j + z * fullAngle * 1j 
         return np.exp(angle * x)
     return ret
-    
 
+def curryNew(angle, offsetAngle = 0, offset = 0):
+    def ret(x):
+        rotationAngle = angle * fullAngle * 1j + offsetAngle * fullAngle * 1j 
+        return np.exp(rotationAngle * x) + x * offset * np.exp(rotationAngle)
+    return ret
+
+
+def curryDev(angle, offset = 0):
+    def ret(x):
+        rotationAngle = angle * fullAngle * 1j
+        return np.exp(rotationAngle * x) * (x + offset)
+    return ret
+
+
+def curryGen(angle, offset = 0):
+    def ret(x):
+        rotationAngle = angle * fullAngle * 1j
+        return np.exp(rotationAngle * x) * 1j
+    return ret
+
+def genStar(lineCount, angle = (np.sqrt(5) - 1) / 2, angleDelta = 0.0, radiusMin = 0.0, radiusMax = 1.0, center = 0.0, time = 0.0):
+    ret = []
+    for n in range(lineCount):
+        a = (angle * n + angleDelta * time) * a2pi
+        r = (radiusMin * n + radiusMax * (lineCount - n)) / lineCount
+        sp = np.exp(a) * r + center
+        d = 1j * np.exp(a)
+        l = line(sp, d)
+        ret.append(l)
+    return ret
 
 
