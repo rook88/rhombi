@@ -9,11 +9,11 @@ HD1080 = (1920, 1080)
 HD720 = (1280, 720)
 VGA = (640, 480)
 
-(width, height) = VGA
+(width, height) = HD1080
 
 rhombi.imgWidth = width * 5
 rhombi.imgHeight= height * 5
-rhombi.sideLength = 22 * 5
+rhombi.sideLength = 25 * 5
 rhombi.backgroundColor = (0, 0, 0)
 rhombi.rhombusEdgeThickness = 10
 
@@ -22,11 +22,11 @@ hueEnd = 180
 
 
 theta = (np.sqrt(5) - 1) / 2
-angleMax = 1 - theta
-angleMin = angleMax / 2
+angleMin = theta
+angleMax = angleMin / 2 + 0.5
 
-frameCount = 30
-lineCount = 30
+frameCount = 3000
+lineCount = 60
 
 ts = list(np.linspace(0, 1, frameCount))
 linesGroup = []
@@ -49,9 +49,10 @@ for i, lines, hue, saturation in zip(range(len(linesGroup)), linesGroup, hues, s
     framePct = float(i) / len(linesGroup)
     print("frame {}/{} framePct = {} line count= {}".format(i + 1, len(linesGroup), framePct, len(lines)))
     rhombi.rhombusEdgeColor = (hue, saturation, 255)
-    rhombi.rhombusFaceColor = (hue, saturation, 100)
+    rhombi.rhombusFaceColor1 = (hue, saturation, min(125, saturation))
+    rhombi.rhombusFaceColor2 = (hue, saturation, min(75, saturation))
     rhombi.genRhombi(lines)
-    img = rhombi.drawImg(lines = lines, justAHalf = True)
+    img = rhombi.drawImg(lines = lines)
     img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
     img = cv2.blur(img, (5, 5))
     img = cv2.resize(img, (width, height))

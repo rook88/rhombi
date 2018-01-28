@@ -145,7 +145,7 @@ def getEdgeVertices(key, lines):
             ret2 += lines[i].getNormal()
     return [ret1, ret2]
 
-        
+"""        
 def getRhombiVertices(key, lines):
     (ret1, ret2, ret3, ret4) = (0, 0, 0, 0)
     for i in range(len(lines)):
@@ -162,7 +162,7 @@ def getRhombiVertices(key, lines):
             ret3 += lines[i].getNormal()
             ret4 += lines[i].getNormal()            
     return (ret1, ret2, ret3, ret4)
-
+"""
 
 def z2imgPoint(z):
     return (imgWidth / 2 + int(np.real(z * sideLength)), imgHeight / 2 - int(np.imag(z * sideLength)))
@@ -170,14 +170,13 @@ def z2imgPoint(z):
 def drawEdgeOld(img, v1, v2):
     cv2.line(img = img, pt1 = z2imgPoint(v1 - 5), pt2 = z2imgPoint(v2 - 5), color = rhombusEdgeColor, thickness = rhombusEdgeThickness)
 
-def drawRhombus(img, faceKey, justAHalf = False):
-    if justAHalf:
-        vertices = faceVertices[faceKey][:-1]
-    else:
-        vertices = faceVertices[faceKey]
-    points = np.array([z2imgPoint(v) for v in vertices])
-#    print points
-    cv2.fillConvexPoly(img, points, rhombusFaceColor)
+def drawRhombus(img, faceKey):
+    vertices1 = faceVertices[faceKey][0:-1]
+    points1 = np.array([z2imgPoint(v) for v in vertices1])
+    cv2.fillConvexPoly(img, points1, rhombusFaceColor1)
+    vertices2 = faceVertices[faceKey][2:] + faceVertices[faceKey][0:1]
+    points2 = np.array([z2imgPoint(v) for v in vertices2])
+    cv2.fillConvexPoly(img, points2, rhombusFaceColor2)
 
 def drawEdge(img, edgeKey):
     (v1, v2) = edgeVertices[edgeKey]
@@ -199,12 +198,12 @@ def genLines(ps, f, g = None):
     return lines
     
 
-def drawImg(lines, justAHalf = False):
+def drawImg(lines):
     img =  np.zeros((imgHeight,imgWidth,3), np.uint8)
     img[:,:] = backgroundColor
     faceKeys = genRhombiFaceKeys(lines)
     for faceKey in faceKeys:
-        drawRhombus(img, faceKey, justAHalf = justAHalf)
+        drawRhombus(img, faceKey)
     for edgeKey in edgeFaces:
         drawEdge(img, edgeKey)
 
