@@ -136,48 +136,6 @@ def star(sideCount, center = 0):
         return retx
     return ret
 
-def starNew(angle, offset):
-    def ret(x):
-        angle = z * fullAngle * 1j 
-        retx =  np.exp(angle * x) * offset
-        return retx
-    return ret
-
-def curry(z):
-    def ret(x):
-        angle = (np.sqrt(5) - 1) / 2 * fullAngle * 1j + z / 10 * fullAngle * 1j 
-        retx =  x * np.exp(angle * x)
-        retx =  (1 - z + x * z) * np.exp(angle * x)
-        retx =  np.exp(angle * x)
-        return retx
-    return ret
-
-def curryOld(z):
-    def ret(x):
-        angle = (np.sqrt(5) - 1) / 2 * fullAngle * 1j + z * fullAngle * 1j 
-        return np.exp(angle * x)
-    return ret
-
-def curryNew(angle, offsetAngle = 0, offset = 0):
-    def ret(x):
-        rotationAngle = angle * fullAngle * 1j + offsetAngle * fullAngle * 1j 
-        return np.exp(rotationAngle * x) + x * offset * np.exp(rotationAngle)
-    return ret
-
-
-def curryDev(angle, offset = 0):
-    def ret(x):
-        rotationAngle = angle * fullAngle * 1j
-        return np.exp(rotationAngle * x) * (x + offset)
-    return ret
-
-
-def curryGen(angle, offset = 0):
-    def ret(x):
-        rotationAngle = angle * fullAngle * 1j
-        return np.exp(rotationAngle * x) * 1j
-    return ret
-
 def genStar(lineCount, angle = (np.sqrt(5) - 1) / 2, angleDelta = 0.0, radiusMin = 0.0, radiusMax = 1.0, center = 0.0, time = 0.0):
     ret = []
     for n in range(lineCount):
@@ -190,3 +148,13 @@ def genStar(lineCount, angle = (np.sqrt(5) - 1) / 2, angleDelta = 0.0, radiusMin
     return ret
 
 
+def measureIrrationality(x):
+    nCount = 20
+    sx = [ n * x % 1 for n in range(nCount)]
+    sx.sort()
+    dx = [(sx[n] - sx[n + 1]) ** 2 for n in range(nCount - 1)]
+    dx.sort()
+    ret = 0
+    for i in range(int(np.sqrt(nCount))):
+        ret += dx[i]
+    return min(ret * nCount * np.sqrt(nCount), 0.10) * 10

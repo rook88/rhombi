@@ -9,32 +9,35 @@ import rhombi
 
 rhombi.imgWidth = width * 5
 rhombi.imgHeight= height * 5
-rhombi.sideLength = 20 * 5
-rhombusEdgeColorStart = np.array([15, 93, 255])
-rhombusEdgeColorEnd = np.array([255, 93, 15]) 
+rhombi.sideLength = 22 * 5
+rhombusEdgeColorStart = np.array([0, 255, 255])
+rhombusEdgeColorEnd = np.array([180, 255, 255]) 
 rhombi.backgroundColor = (0, 0, 0)
-rhombi.rhombusEdgeThickness = 8
+rhombi.rhombusEdgeThickness = 10
 
 linesGroup = []
 
 theta = (np.sqrt(5) - 1) / 2
+angleMax = 1 - theta
+angleMin = angleMax / 2
 
 frameCount = 2400
-lineCount = 16
+lineCount = 61
 
 ts = list(np.linspace(0, 1, frameCount))
-ks = [list(np.linspace(0, 1, lineCount)) for n in range(frameCount)]
-fs = [rhombi.curryDev(angle = 0.2, offset = 0.1 * t) for t in ts]
-gs = [rhombi.curryDev(angle = 0.2, offset = 0.1 * t) for t in ts]
-print fs
-#linesGroup += [rhombi.genLines(k, f, g) for k, f, g in zip(ks, fs, gs)]
 
-#linesGroup.append(rhombi.genStar(25))
+colors = []
 for t in ts:
-    s5 = rhombi.genStar(5, angle = 1 / 5.0, angleDelta = 2 * np.pi, radiusMin = 0.0009, radiusMax = 0.0010, center = np.exp(10 * rhombi.a2pi * t) * 0.8, time = t)
-    s7 = rhombi.genStar(7, angle = 1 / 7.0, angleDelta = 2 * np.pi, radiusMin = 0.0009, radiusMax = 0.0010, center = np.exp(10 * theta * rhombi.a2pi * t) * 0.9, time = t)
-    stheta = rhombi.genStar(61, angleDelta = - np.pi, radiusMin = -1 + 2 * t, radiusMax = 1, time = t)
-    linesGroup.append(s5 + s7 + stheta)
+    angle = (1 - t) * angleMin + t * angleMax
+    irrationality = rhombi.measureIrrationality(angle)
+    color = rhombusEdgeColorStart * (1 - t) + rhombusEdgeColorEnd * t
+    color[1] = int(irrationality * 255)
+    colors.append(color)
+    radiusMin = np.sin(theta / frameCount + t * np.pi * 5) * 0.99
+    print("t = {}, angle = {} irrationality = {}, radiusMin = {}".format(t, angle, irrationality, radiusMin))
+    stheta = rhombi.genStar(lineCount, angle = angle, radiusMin = radiusMin, radiusMax = 1, time = t)
+    linesGroup.append(stheta)
+
 #linesGroup.append(rhombi.genStar(25, radiusMin = -1.0))
 #linesGroup.append(rhombi.genStar(25, angle = (np.sqrt(5) - 1) / 2, radiusMin = -1.0))
 #linesGroup.append(rhombi.genStar(25, angle = (np.sqrt(5) - 1) / 2, radiusMin = 1.0))
@@ -43,12 +46,14 @@ for t in ts:
 #print linesGroup[0]
 
 ims = []
-for i, lines in zip(range(len(linesGroup)), linesGroup):
+for i, lines, color in zip(range(len(linesGroup)), linesGroup, colors):
     framePct = float(i) / len(linesGroup)
-    print("frame {}/{} framePct = {} line[0] = {}".format(i + 1, len(linesGroup), framePct, lines[0]))
-    rhombi.rhombusEdgeColor = rhombusEdgeColorStart * (1 - framePct) + rhombusEdgeColorEnd * framePct
+    print("frame {}/{} framePct = {} line count= {}".format(i + 1, len(linesGroup), framePct, len(lines)))
+    rhombi.rhombusEdgeColor = color
     img = rhombi.drawImg(lines = lines)
 #    img = rhombi.drawLines(lines = lines)
+    img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
+    img = cv2.blur(img, (5, 5))
     img = cv2.resize(img, (width, height))
     if frameCount < 10:
         cv2.imshow('image',img)
