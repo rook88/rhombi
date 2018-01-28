@@ -5,55 +5,56 @@ import imageio
 
 import rhombi
 
-rhombi.imgWidth = 1280 * 5
-rhombi.imgHeight= 960 * 5
-rhombi.sideLength = 20 * 5
-rhombusEdgeColorStart = np.array([15, 93, 255])
-rhombusEdgeColorEnd = np.array([255, 93, 15]) 
+HD1080 = (1920, 1080)
+HD720 = (1280, 720)
+VGA = (640, 480)
+
+(width, height) = VGA
+
+rhombi.imgWidth = width * 5
+rhombi.imgHeight= height * 5
+rhombi.sideLength = 22 * 5
 rhombi.backgroundColor = (0, 0, 0)
-rhombi.rhombusEdgeThickness = 8
+rhombi.rhombusEdgeThickness = 10
 
-lineCount = 70
+hueStart = 0
+hueEnd = 180
 
-linesGroup = []
 
 theta = (np.sqrt(5) - 1) / 2
+angleMax = 1 - theta
+angleMin = angleMax / 2
 
-frameCount = 60
+frameCount = 30
+lineCount = 30
+
 ts = list(np.linspace(0, 1, frameCount))
-ks = [list(np.linspace(-1, 1, lineCount)) for n in range(frameCount)]
+linesGroup = []
+hues = []
+saturations = []
 
-fs = [rhombi.curryNew(angle = theta, offset = 1, offsetAngle = 0.2 + t) for t in ts]
-linesGroup += [rhombi.genLines(k, f) for k, f in zip(ks, fs)]
+for t in ts:
+    angle = (1 - t) * angleMin + t * angleMax
+    irrationality = rhombi.measureIrrationality(angle)
+    hues.append(hueStart * (1 - t) + hueEnd * t)
+    saturations.append(int(irrationality * 255))
+    radiusMin = np.sin(theta / frameCount + t * np.pi * 5) * 0.99
+    print("t = {}, angle = {} irrationality = {}, radiusMin = {}".format(t, angle, irrationality, radiusMin))
+    stheta = rhombi.genStar(lineCount, angle = angle, radiusMin = radiusMin, radiusMax = 1, time = t)
+    linesGroup.append(stheta)
 
-fs = [rhombi.curryNew(angle = theta, offset = 1 - t, offsetAngle = 1.2 + t) for t in ts]
-linesGroup += [rhombi.genLines(k, f) for k, f in zip(ks, fs)]
-
-fs = [rhombi.curryNew(angle = theta, offset = 0, offsetAngle = 2.2 + t) for t in ts]
-linesGroup += [rhombi.genLines(k, f) for k, f in zip(ks, fs)]
-
-"""
-Toimii:
-frameCount = 4
-ts = list(np.linspace(0, 1, frameCount))
-ks = [list(np.linspace(-1, 1, lineCount)) for n in range(frameCount)]
-fs = [rhombi.curryNew(angle = theta, offsetAngle = t) for t in ts]
-linesGroup += [rhombi.genLines(k, f) for k, f in zip(ks, fs)]
-"""
-
-print("------------------------------------------------------------")
-print len(linesGroup)
-print ks
-print [f(1) for f in fs]
 
 ims = []
-for i, lines in zip(range(len(linesGroup)), linesGroup):
+for i, lines, hue, saturation in zip(range(len(linesGroup)), linesGroup, hues, saturations):
     framePct = float(i) / len(linesGroup)
-    print("frame {}/{} framePct = {} line[0] = {}".format(i + 1, len(linesGroup), framePct, lines[0]))
-    rhombi.rhombusEdgeColor = rhombusEdgeColorStart * (1 - framePct) + rhombusEdgeColorEnd * framePct
-    img = rhombi.drawImg(lines = lines)
-#    img = rhombi.drawLines(lines = lines)
-    img = cv2.resize(img, (1280, 960))
+    print("frame {}/{} framePct = {} line count= {}".format(i + 1, len(linesGroup), framePct, len(lines)))
+    rhombi.rhombusEdgeColor = (hue, saturation, 255)
+    rhombi.rhombusFaceColor = (hue, saturation, 100)
+    rhombi.genRhombi(lines)
+    img = rhombi.drawImg(lines = lines, justAHalf = True)
+    img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
+    img = cv2.blur(img, (5, 5))
+    img = cv2.resize(img, (width, height))
     if frameCount < 10:
         cv2.imshow('image',img)
         cv2.waitKey(0)
@@ -62,7 +63,7 @@ for i, lines in zip(range(len(linesGroup)), linesGroup):
 
 
 if frameCount > 9:
-    imageio.mimwrite(uri = 'rhomboids.mp4', ims = ims)#, duration = 0.05)
-#imageio.mimwrite(uri = 'rhomboids.gif', ims = ims + list(reversed(ims)), duration = 0.04)
+    imageio.mimwrite(uri = 'rhomboids2.mp4', ims = ims, macro_block_size = None)
 
-cv2.imwrite('test.jpg', img)
+
+
