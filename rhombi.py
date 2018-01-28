@@ -2,7 +2,6 @@ import numpy as np
 import cv2
 
 
-
 fullAngle = 2 * np.pi
 a2pi = 2 * np.pi * 1j
 rightAngle = 0.5 * np.pi
@@ -42,7 +41,7 @@ def position(l, x):
     else:
         return 1
     
-def genRhomboidFaceKeys(lines):
+def genRhombiFaceKeys(lines):
     ret = {}
     previousIntersections = []
     for i1 in range(len(lines)):
@@ -63,7 +62,91 @@ def genRhomboidFaceKeys(lines):
                 ret[retKey] = (i1, i2, p)
     return ret
 
-def getRhomboidVertices(key, lines):
+
+
+faceLines = {}
+faceEdges = {} 
+faceVertices = {} 
+faceDirections = {} 
+edgeFaces = {} 
+edgeVertices = {} 
+vertices = {}
+def genRhombi(lines):
+    faceEdges.clear()
+    edgeFaces.clear()
+    edgeVertices.clear()
+    faceVertices.clear()
+    faceLines.clear()
+    faceDirections.clear()
+    previousIntersections = []
+    for i1 in range(len(lines)):
+        for i2 in range(i1 + 1, len(lines)):
+            p = intersection(lines[i1], lines[i2])
+            if p <> None:
+                if p in previousIntersections:
+                    raise ValueError("multiple lines intersect at same point", p)
+                previousIntersections.append(p)
+                faceKey = ""
+                for i3 in range(len(lines)):
+                    if i3 == i1:
+                        faceKey += "a"
+                    elif i3 == i2:
+                        faceKey += "b"
+                    else:
+                        faceKey += str(position(lines[i3], p))
+                faceLines[faceKey] = (i1, i2)
+                faceDirections[faceKey] = lines[i1].getNormal() + lines[i2].getNormal() 
+    for faceKey in faceLines:
+        edgeKey1 = ""
+        edgeKey2 = ""
+        edgeKey3 = ""
+        edgeKey4 = ""
+        for i in range(len(lines)):
+            pos = faceKey[i]
+            if pos == 'a':
+                edgeKey1 += 'x'
+                edgeKey2 += 'x'
+                edgeKey3 += '0'
+                edgeKey4 += '1'
+            elif pos == 'b':
+                edgeKey1 += '0'
+                edgeKey2 += '1'
+                edgeKey3 += 'x'
+                edgeKey4 += 'x'
+            else:
+                edgeKey1 += pos
+                edgeKey2 += pos
+                edgeKey3 += pos
+                edgeKey4 += pos
+        faceEdges[faceKey] = [edgeKey1, edgeKey2, edgeKey3, edgeKey4]
+        edgeFacesAppend(edgeKey1, faceKey)
+        edgeFacesAppend(edgeKey2, faceKey)
+        edgeFacesAppend(edgeKey3, faceKey)
+        edgeFacesAppend(edgeKey4, faceKey)
+        faceVertices[faceKey] = getEdgeVertices(edgeKey1, lines) + list(reversed(getEdgeVertices(edgeKey2, lines)))
+    for edgeKey in edgeFaces:
+        edgeVertices[edgeKey] = getEdgeVertices(edgeKey, lines)
+
+        
+def edgeFacesAppend(edgeKey, faceKey):
+    if edgeFaces.has_key(edgeKey):
+        edgeFaces[edgeKey].append(faceKey)
+    else:
+        edgeFaces[edgeKey] = [faceKey]
+
+def getEdgeVertices(key, lines):
+    (ret1, ret2) = (0, 0)
+    for i in range(len(lines)):
+        pos = key[i]
+        if pos == 'x':
+            ret1 += lines[i].getNormal()
+        if pos == '1':
+            ret1 += lines[i].getNormal()
+            ret2 += lines[i].getNormal()
+    return [ret1, ret2]
+
+        
+def getRhombiVertices(key, lines):
     (ret1, ret2, ret3, ret4) = (0, 0, 0, 0)
     for i in range(len(lines)):
         position = key[i]
@@ -84,8 +167,25 @@ def getRhomboidVertices(key, lines):
 def z2imgPoint(z):
     return (imgWidth / 2 + int(np.real(z * sideLength)), imgHeight / 2 - int(np.imag(z * sideLength)))
 
-def drawRhomboid(img, v1, v2):
-    cv2.line(img = img, pt1 = z2imgPoint(v1), pt2 = z2imgPoint(v2), color = rhombusEdgeColor, thickness = rhombusEdgeThickness)
+def drawEdgeOld(img, v1, v2):
+    cv2.line(img = img, pt1 = z2imgPoint(v1 - 5), pt2 = z2imgPoint(v2 - 5), color = rhombusEdgeColor, thickness = rhombusEdgeThickness)
+
+def drawRhombus(img, faceKey, justAHalf = False):
+    if justAHalf:
+        vertices = faceVertices[faceKey][:-1]
+    else:
+        vertices = faceVertices[faceKey]
+    points = np.array([z2imgPoint(v) for v in vertices])
+#    print points
+    cv2.fillConvexPoly(img, points, rhombusFaceColor)
+
+def drawEdge(img, edgeKey):
+    (v1, v2) = edgeVertices[edgeKey]
+    if len(edgeFaces[edgeKey]) == 2:
+        dif = abs(faceDirections[edgeFaces[edgeKey][0]] - faceDirections[edgeFaces[edgeKey][1]])
+        cv2.line(img = img, pt1 = z2imgPoint(v1), pt2 = z2imgPoint(v2), color = [rhombusEdgeColor[0], rhombusEdgeColor[1], rhombusEdgeColor[2]], thickness = rhombusEdgeThickness)
+    else:
+        cv2.line(img = img, pt1 = z2imgPoint(v1), pt2 = z2imgPoint(v2), color = rhombusEdgeColor, thickness = rhombusEdgeThickness * 1)
 
 def genLines(ps, f, g = None):
     lines = []
@@ -98,17 +198,16 @@ def genLines(ps, f, g = None):
         lines.append(l)
     return lines
     
-def drawImg(lines):
+
+def drawImg(lines, justAHalf = False):
     img =  np.zeros((imgHeight,imgWidth,3), np.uint8)
     img[:,:] = backgroundColor
-    faceKeys = genRhomboidFaceKeys(lines)
-    for key in faceKeys:
-        (v1, v2, v3, v4) = getRhomboidVertices(key, lines)
-        drawRhomboid(img, v1, v2)
-        drawRhomboid(img, v1, v3)
-        drawRhomboid(img, v2, v4)
-        drawRhomboid(img, v3, v4)
-#    print("k = {} Count of Rhomboids {}".format(k, len(faceKeys)))
+    faceKeys = genRhombiFaceKeys(lines)
+    for faceKey in faceKeys:
+        drawRhombus(img, faceKey, justAHalf = justAHalf)
+    for edgeKey in edgeFaces:
+        drawEdge(img, edgeKey)
+
     return img
 
 
@@ -118,7 +217,7 @@ def drawLines(lines):
     for line in lines:
         pt1 = line.somePoint - 30 * line.direction
         pt2 = line.somePoint + 30 * line.direction
-        drawRhomboid(img, pt1, pt2)
+        drawEdgeOld(img, pt1, pt2)
     return img
 
 def genK(n):
