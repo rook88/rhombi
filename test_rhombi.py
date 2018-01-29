@@ -9,7 +9,7 @@ HD1080 = (1920, 1080)
 HD720 = (1280, 720)
 VGA = (640, 480)
 
-(width, height) = HD1080
+(width, height) = VGA
 
 rhombi.imgWidth = width * 5
 rhombi.imgHeight= height * 5
@@ -25,8 +25,8 @@ theta = (np.sqrt(5) - 1) / 2
 angleMin = theta
 angleMax = angleMin / 2 + 0.5
 
-frameCount = 3000
-lineCount = 60
+frameCount = 30
+lineCount = 30
 
 ts = list(np.linspace(0, 1, frameCount))
 linesGroup = []
