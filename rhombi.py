@@ -171,20 +171,35 @@ def drawEdgeOld(img, v1, v2):
     cv2.line(img = img, pt1 = z2imgPoint(v1 - 5), pt2 = z2imgPoint(v2 - 5), color = rhombusEdgeColor, thickness = rhombusEdgeThickness)
 
 def drawRhombus(img, faceKey):
-    vertices1 = faceVertices[faceKey][0:-1]
-    points1 = np.array([z2imgPoint(v) for v in vertices1])
-    cv2.fillConvexPoly(img, points1, rhombusFaceColor1)
-    vertices2 = faceVertices[faceKey][2:] + faceVertices[faceKey][0:1]
-    points2 = np.array([z2imgPoint(v) for v in vertices2])
-    cv2.fillConvexPoly(img, points2, rhombusFaceColor2)
+    saturation = rhombusFaceColor1[1]
+    if saturation > 75:
+        vertices1 = faceVertices[faceKey][0:-1]
+        points1 = np.array([z2imgPoint(v) for v in vertices1])
+        cv2.fillConvexPoly(img, points1, rhombusFaceColor1)
+        vertices2 = faceVertices[faceKey][2:] + faceVertices[faceKey][0:1]
+        points2 = np.array([z2imgPoint(v) for v in vertices2])
+        cv2.fillConvexPoly(img, points2, rhombusFaceColor2)
+    else:
+        d = faceDirections[faceKey]
+        hue = int(180 * (abs(np.imag(np.log((d))) / np.pi % 1.0)))
+        color = (hue, 255, 255)
+        vertices = faceVertices[faceKey]
+        points = np.array([z2imgPoint(v) for v in vertices])
+        cv2.fillConvexPoly(img, points, color)
+                  
 
 def drawEdge(img, edgeKey):
     (v1, v2) = edgeVertices[edgeKey]
     if len(edgeFaces[edgeKey]) == 2:
-        dif = abs(faceDirections[edgeFaces[edgeKey][0]] - faceDirections[edgeFaces[edgeKey][1]])
-        cv2.line(img = img, pt1 = z2imgPoint(v1), pt2 = z2imgPoint(v2), color = [rhombusEdgeColor[0], rhombusEdgeColor[1], rhombusEdgeColor[2]], thickness = rhombusEdgeThickness)
+        d1 = faceDirections[edgeFaces[edgeKey][0]]
+        d2 = faceDirections[edgeFaces[edgeKey][1]]
+        dif = abs(d1 - d1) * abs(d1 + d2)
+        value = min(255, int(dif * 128))
+        value = 0
+        cv2.line(img = img, pt1 = z2imgPoint(v1), pt2 = z2imgPoint(v2), color = [rhombusEdgeColor[0], rhombusEdgeColor[1], value], thickness = rhombusEdgeThickness)
     else:
-        cv2.line(img = img, pt1 = z2imgPoint(v1), pt2 = z2imgPoint(v2), color = rhombusEdgeColor, thickness = rhombusEdgeThickness * 1)
+        pass
+#        cv2.line(img = img, pt1 = z2imgPoint(v1), pt2 = z2imgPoint(v2), color = rhombusEdgeColor, thickness = rhombusEdgeThickness * 1)
 
 def genLines(ps, f, g = None):
     lines = []
