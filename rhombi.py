@@ -172,7 +172,7 @@ def drawEdgeOld(img, v1, v2):
 
 def drawRhombus(img, faceKey):
     saturation = rhombusFaceColor1[1]
-    if saturation > 75:
+    if saturation > 128:
         vertices1 = faceVertices[faceKey][0:-1]
         points1 = np.array([z2imgPoint(v) for v in vertices1])
         cv2.fillConvexPoly(img, points1, rhombusFaceColor1)
@@ -182,7 +182,7 @@ def drawRhombus(img, faceKey):
     else:
         d = faceDirections[faceKey]
         hue = int(180 * (abs(np.imag(np.log((d))) / np.pi % 1.0)))
-        color = (hue, 255, 255)
+        color = (hue, 255 - saturation, 255 - saturation)
         vertices = faceVertices[faceKey]
         points = np.array([z2imgPoint(v) for v in vertices])
         cv2.fillConvexPoly(img, points, color)
