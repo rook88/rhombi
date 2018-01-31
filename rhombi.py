@@ -68,6 +68,7 @@ faceLines = {}
 faceEdges = {} 
 faceVertices = {} 
 faceDirections = {} 
+faceShapes = {} 
 edgeFaces = {} 
 edgeVertices = {} 
 vertices = {}
@@ -78,6 +79,7 @@ def genRhombi(lines):
     faceVertices.clear()
     faceLines.clear()
     faceDirections.clear()
+    faceShapes.clear()
     previousIntersections = []
     for i1 in range(len(lines)):
         for i2 in range(i1 + 1, len(lines)):
@@ -96,6 +98,7 @@ def genRhombi(lines):
                         faceKey += str(position(lines[i3], p))
                 faceLines[faceKey] = (i1, i2)
                 faceDirections[faceKey] = lines[i1].getNormal() + lines[i2].getNormal() 
+                faceShapes[faceKey] = lines[i1].getNormal() / lines[i2].getNormal() 
     for faceKey in faceLines:
         edgeKey1 = ""
         edgeKey2 = ""
@@ -145,30 +148,10 @@ def getEdgeVertices(key, lines):
             ret2 += lines[i].getNormal()
     return [ret1, ret2]
 
-"""        
-def getRhombiVertices(key, lines):
-    (ret1, ret2, ret3, ret4) = (0, 0, 0, 0)
-    for i in range(len(lines)):
-        position = key[i]
-        if position == 'a':
-            ret2 += lines[i].getNormal()
-            ret4 += lines[i].getNormal()
-        if position == 'b':
-            ret3 += lines[i].getNormal()
-            ret4 += lines[i].getNormal()
-        if position == '1':
-            ret1 += lines[i].getNormal()
-            ret2 += lines[i].getNormal()
-            ret3 += lines[i].getNormal()
-            ret4 += lines[i].getNormal()            
-    return (ret1, ret2, ret3, ret4)
-"""
 
 def z2imgPoint(z):
     return (imgWidth / 2 + int(np.real(z * sideLength)), imgHeight / 2 - int(np.imag(z * sideLength)))
 
-def drawEdgeOld(img, v1, v2):
-    cv2.line(img = img, pt1 = z2imgPoint(v1 - 5), pt2 = z2imgPoint(v2 - 5), color = rhombusEdgeColor, thickness = rhombusEdgeThickness)
 
 def drawRhombus(img, faceKey):
     saturation = rhombusFaceColor1[1]
@@ -181,7 +164,9 @@ def drawRhombus(img, faceKey):
         cv2.fillConvexPoly(img, points2, rhombusFaceColor2)
     else:
         d = faceDirections[faceKey]
+#        d = faceShapes[faceKey]
         hue = int(180 * (abs(np.imag(np.log((d))) / np.pi % 1.0)))
+#        hue = (int(180 * (abs(np.real(d)))) + 105) % 180
         color = (hue, 255 - saturation, 255 - saturation)
         vertices = faceVertices[faceKey]
         points = np.array([z2imgPoint(v) for v in vertices])
