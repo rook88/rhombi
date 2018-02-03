@@ -6,36 +6,41 @@ import getopt, sys
 
 import rhombi
 
+frameCount = 3
 
 testMode = False
-outputFile = 'rhombi.mp4'
+outputFile = None
 testT = None
 testAngle = None
-opts, args = getopt.getopt(sys.argv[1:], "tf:vx:va:v")
+testLineCount = None
+resolution = None
+opts, args = getopt.getopt(sys.argv[1:], None, ['testmode', 'file=', 'angle=', 'linecount=', 'framecount=', 'testtime=', 'resolution='])
 for o, a in opts:
-    if o == '-t':
+    if o == '--testmode':
         testMode = True
-    if o == '-f':
+    if o == '--file':
         outputFile = a
-    if o == '-x':
+    if o == '--testtime':
         testT = float(a)
-    if o == '-a':
+    if o == '--angle':
         testAngle = float(a)
+    if o == '--linecount':
+        testLineCount = int(a)
+    if o == '--resolution':
+        resolution = a
+    if o == '--framecount':
+        frameCount = int(a)
+        
 
+(width, height) = (640, 480)
+if resolution:
+    if resolution == '1080p':
+        (width, height) = (1920, 1080)
+    if resolution == '720p':
+        (width, height) = (1280, 720)
 
-HD1080 = (1920, 1080)
-HD720 = (1280, 720)
-VGA = (640, 480)
-
-if testMode:
-    (width, height) = VGA
-    frameCount = 3
-    lineCount = 30
-else:
-    frameCount = 2400
-    lineCount = 60
-    (width, height) = HD1080
-
+if testLineCount:
+    lineCount = testLineCount
 
 rhombi.imgWidth = width * 5
 rhombi.imgHeight= height * 5
@@ -47,8 +52,10 @@ hueStart = 0
 hueEnd = 180
 
 theta = (np.sqrt(5) - 1) / 2
+#angleMin = 1 - theta
+#angleMax = angleMin + 0.5
 angleMin = theta
-angleMax = angleMin / 2 + 0.5
+angleMax = 1 - (1 - angleMin) / 2
 
 
 ts = list(np.linspace(0, 1, frameCount))
@@ -62,6 +69,8 @@ if testAngle:
     print("t = {}".format(t)) 
     frameCount = 1
 
+    
+    
 linesGroup = []
 hues = []
 saturations = []
@@ -97,8 +106,8 @@ for i, lines, hue, saturation in zip(range(len(linesGroup)), linesGroup, hues, s
     ims.append(img)
 
 
-if frameCount > 9:
-    imageio.mimwrite(uri = outputFile, ims = ims, macro_block_size = None)
+if outputFile:
+    imageio.mimwrite(uri = outputFile, ims = ims, macro_block_size = None, fps = 24)
 
 
 
