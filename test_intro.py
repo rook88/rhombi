@@ -15,33 +15,40 @@ angleMin  = rhombi.angleMin
 angleMax = rhombi.angleMax
 ts = rhombi.ts
 
-hueStart = 0
-hueEnd = 180
-
 linesGroup = []
-hues = []
 saturations = []
 
 t08 = (0.8 - angleMin) / (angleMax - angleMin)
 
-for t in ts:
-    angle = (1 - t) * angleMin + t * angleMax
-    doublePct = np.clip(30 * (angle - 0.75), 0, 1) 
+lineCountFrames = list(np.linspace(2, lineCount, frameCount))
+for lineCountFrame in lineCountFrames:
+    angle = testAngle
     irrationality = rhombi.measureIrrationality(angle)
-    hues.append(hueStart * (1 - t) + hueEnd * t)
     saturations.append(int(irrationality * 255))
-    radiusMin = np.sin((t - t08) * np.pi * 6 - np.pi / 2) * 0.99999
-    print("t = {}, angle = {} irrationality = {}, radiusMin = {}".format(t, angle, irrationality, radiusMin))
-    star = rhombi.genStar(lineCount, angle = angle, radiusMin = radiusMin, radiusMax = 1, time = t, normalLength = edgeLength, doublePct = doublePct)
-    linesGroup.append(star)
+    intro = []
+    r = 1.0
+    for lineNumber in range(int(np.ceil(lineCountFrame))):
+        pct = np.clip(lineCountFrame - lineNumber, 0, 1)
+        print "lines in frame = {}, line number = {}, pct = {}".format(lineCountFrame, lineNumber, pct)
+        n = lineNumber
+        a = angle * n * rhombi.a2pi
+        r += 1
+        sp = np.exp(a) * r 
+        d = 1j * np.exp(a)
+        line1 = rhombi.line(sp, d, rhombi.edgeLength, visible = pct)
+        intro.append(line1)
+    linesGroup.append(intro)
 
+#    print("t = {}, angle = {} irrationality = {}, radiusMin = {}".format(t, angle, irrationality, radiusMin))
+
+hue = 30
 ims = []
-for i, lines, hue, saturation in zip(range(len(linesGroup)), linesGroup, hues, saturations):
+for i, lines, saturation in zip(range(len(linesGroup)), linesGroup, saturations):
     framePct = float(i) / len(linesGroup)
     print("frame {}/{} framePct = {} line count= {}".format(i + 1, len(linesGroup), framePct, len(lines)))
     rhombi.rhombusEdgeColor = (hue, saturation, 255)
-    rhombi.rhombusFaceColor1 = (hue, saturation, min(192, saturation))
-    rhombi.rhombusFaceColor2 = (hue, saturation, min(128, saturation))
+    rhombi.rhombusFaceColor1 = (hue, 255, 255)
+    rhombi.rhombusFaceColor2 = (hue, 255, 255)
     rhombi.genRhombi(lines)
     img = rhombi.drawImg(lines = lines)
     img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)

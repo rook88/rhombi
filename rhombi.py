@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import getopt, sys
 
 
 fullAngle = 2 * np.pi
@@ -7,15 +8,92 @@ a2pi = 2 * np.pi * 1j
 rightAngle = 0.5 * np.pi
 origin = 0 + 0j
 
+frameCount = 3
+lineCount = 20
+edgeLength = 25 * 5
+testMode = False
+outputFile = None
+testT = None
+testAngle = None
+testAngleMin = None
+testAngleMax = None
+testLineCount = None
+testFrameCount = None
+resolution = None
+
+opts, args = getopt.getopt(sys.argv[1:], None, ['testmode', 'file=', 'angle=','anglemin=','anglemax=', 'linecount=', 'framecount=', 'testtime=', 'resolution='])
+
+for o, a in opts:
+    if o == '--testmode':
+        testMode = True
+    if o == '--file':
+        outputFile = a
+    if o == '--testtime':
+        testT = float(a)
+    if o == '--angle':
+        testAngle = float(a)
+    if o == '--anglemin':
+        testAngleMin = float(a)
+    if o == '--anglemax':
+        testAngleMax = float(a)
+    if o == '--linecount':
+        testLineCount = int(a)
+    if o == '--resolution':
+        resolution = a
+    if o == '--framecount':
+        testFrameCount = int(a)
+        
+(width, height) = (640, 480)
+if resolution:
+    if resolution == '1080p':
+        (width, height) = (1920, 1080)
+    if resolution == '720p':
+        (width, height) = (1280, 720)
+
+if testLineCount:
+    lineCount = testLineCount
+
+imgWidth = width * 5
+imgHeight= height * 5
+backgroundColor = (0, 0, 0)
+rhombusEdgeThickness = 10
+
+theta = (np.sqrt(5) - 1) / 2
+if testAngleMin:
+    angleMin = testAngleMin
+else:
+    angleMin = theta
+
+if testAngleMax:
+    angleMax = testAngleMax
+else:
+    angleMax = 1 - (1 - angleMin) / 2
+
+
+ts = list(np.linspace(0, 1, frameCount))
+if testT:
+    ts = [testT]
+    frameCount = 1
+
+if testAngle:
+    t = (testAngle - angleMin) / (angleMax - angleMin)
+    ts = [t]
+    print("t = {}".format(t)) 
+    frameCount = 1
+
+if testFrameCount:
+    frameCount = testFrameCount
+
 class line():
-    def __init__(self, somePoint = None, directionPoint = None, normalLength = 1.0):
+    def __init__(self, somePoint = None, directionPoint = None, normalLength = 1.0, visible = 1.0):
         if somePoint <> None and directionPoint <> None:
             self.somePoint = somePoint
             self.direction = directionPoint / abs(directionPoint)
             self.angle = np.imag(np.log(directionPoint))
             self.normalLength = normalLength
+            self.visible = visible
     def getNormal(self):
-        return self.direction / np.exp(rightAngle * 1j) * self.normalLength
+        return self.direction / np.exp(rightAngle * 1j) * self.normalLength * self.visible
     def __str__(self):
         return "Line somePoint = {} angle = {} direction = {}".format(self.somePoint, self.angle / fullAngle, self.direction)
 
@@ -69,6 +147,7 @@ faceLines = {}
 faceEdges = {} 
 faceVertices = {} 
 faceDirections = {} 
+faceVisibles = {} 
 faceShapes = {} 
 edgeFaces = {} 
 edgeVertices = {} 
@@ -81,6 +160,7 @@ def genRhombi(lines):
     faceLines.clear()
     faceDirections.clear()
     faceShapes.clear()
+    faceVisibles.clear()
     previousIntersections = []
     for i1 in range(len(lines)):
         for i2 in range(i1 + 1, len(lines)):
@@ -100,6 +180,7 @@ def genRhombi(lines):
                 faceLines[faceKey] = (i1, i2)
                 faceDirections[faceKey] = lines[i1].getNormal() + lines[i2].getNormal() 
                 faceShapes[faceKey] = lines[i1].getNormal() / lines[i2].getNormal() 
+                faceVisibles[faceKey] = lines[i1].visible * lines[i2].visible
     for faceKey in faceLines:
         edgeKey1 = ""
         edgeKey2 = ""
@@ -156,7 +237,8 @@ def z2imgPoint(z):
 
 def drawRhombus(img, faceKey):
     saturation = rhombusFaceColor1[1]
-    if saturation > 128:
+    value = 255 * faceVisibles[faceKey]
+    if saturation > 1128:
         vertices1 = faceVertices[faceKey][0:-1]
         points1 = np.array([z2imgPoint(v) for v in vertices1])
         cv2.fillConvexPoly(img, points1, rhombusFaceColor1)
@@ -168,7 +250,8 @@ def drawRhombus(img, faceKey):
 #        d = faceShapes[faceKey]
         hue = int(180 * (abs(np.imag(np.log((d))) / np.pi % 1.0)))
 #        hue = (int(180 * (abs(np.real(d)))) + 105) % 180
-        color = (hue, 255 - saturation, 255 - saturation)
+#        color = (hue, 255 - saturation, value)
+        color = (hue, saturation, value)
         vertices = faceVertices[faceKey]
         points = np.array([z2imgPoint(v) for v in vertices])
         cv2.fillConvexPoly(img, points, color)
@@ -247,7 +330,6 @@ def genStar(lineCount, angle = (np.sqrt(5) - 1) / 2, angleDelta = 0.0, radiusMin
             d = 1j * np.exp(a)
             line2 = line(sp, d, l)
             ret.append(line2)
-
     return ret
 
 
@@ -261,3 +343,5 @@ def measureIrrationality(x):
     for i in range(int(np.sqrt(nCount))):
         ret += dx[i]
     return min(ret * nCount * np.sqrt(nCount), 0.10) * 10
+
+    
