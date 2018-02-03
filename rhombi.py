@@ -8,13 +8,14 @@ rightAngle = 0.5 * np.pi
 origin = 0 + 0j
 
 class line():
-    def __init__(self, somePoint = None, directionPoint = None):
+    def __init__(self, somePoint = None, directionPoint = None, normalLength = 1.0):
         if somePoint <> None and directionPoint <> None:
             self.somePoint = somePoint
             self.direction = directionPoint / abs(directionPoint)
             self.angle = np.imag(np.log(directionPoint))
+            self.normalLength = normalLength
     def getNormal(self):
-        return self.direction / np.exp(rightAngle * 1j)
+        return self.direction / np.exp(rightAngle * 1j) * self.normalLength
     def __str__(self):
         return "Line somePoint = {} angle = {} direction = {}".format(self.somePoint, self.angle / fullAngle, self.direction)
 
@@ -150,7 +151,7 @@ def getEdgeVertices(key, lines):
 
 
 def z2imgPoint(z):
-    return (imgWidth / 2 + int(np.real(z * sideLength)), imgHeight / 2 - int(np.imag(z * sideLength)))
+    return (imgWidth / 2 + int(np.real(z)), imgHeight / 2 - int(np.imag(z)))
 
 
 def drawRhombus(img, faceKey):
@@ -223,26 +224,30 @@ def genK(n):
 #    return 2.5 - 5.0 * n / frameCount
     return 4.0 ** (1.0 * (frameCount - 1 - n) / (frameCount - 1)) * 7.0 ** (1.0 * n / (frameCount - 1))
 
-def derivative(f, x):
-    h = 0.0001
-    return (f(x + h) - f(x)) / h
 
-def star(sideCount, center = 0):
-    def ret(x):
-        angle = fullAngle * 1j / sideCount
-        retx =  np.exp(angle * x) + x * center * np.exp(angle * x) / sideCount
-        return retx
-    return ret
-
-def genStar(lineCount, angle = (np.sqrt(5) - 1) / 2, angleDelta = 0.0, radiusMin = 0.0, radiusMax = 1.0, center = 0.0, time = 0.0):
+def genStar(lineCount, angle = (np.sqrt(5) - 1) / 2, angleDelta = 0.0, radiusMin = 0.0, radiusMax = 1.0, center = 0.0, time = 0.0, doublePct = 0.0, normalLength = 1.0):
     ret = []
-    for n in range(lineCount):
+    if not doublePct:
+        l = normalLength
+    else:
+        l = normalLength / 2
+    for nn in range(lineCount):
+        n = nn
         a = (angle * n + angleDelta * time) * a2pi
         r = (radiusMin * n + radiusMax * (lineCount - n)) / lineCount
         sp = np.exp(a) * r + center
         d = 1j * np.exp(a)
-        l = line(sp, d)
-        ret.append(l)
+        line1 = line(sp, d, l)
+        ret.append(line1)
+        if doublePct:
+            n = nn + doublePct / 2
+            a = (angle * n + angleDelta * time) * a2pi
+            r = (radiusMin * n + radiusMax * (lineCount - n)) / lineCount
+            sp = np.exp(a) * r + center
+            d = 1j * np.exp(a)
+            line2 = line(sp, d, l)
+            ret.append(line2)
+
     return ret
 
 
