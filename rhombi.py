@@ -94,6 +94,8 @@ class line():
             self.visible = visible
     def getNormal(self):
         return self.direction / np.exp(rightAngle * 1j) * self.normalLength * self.visible
+    def isVisible(self):
+        return self.visible
     def __str__(self):
         return "Line somePoint = {} angle = {} direction = {}".format(self.somePoint, self.angle / fullAngle, self.direction)
 
@@ -231,6 +233,88 @@ def getEdgeVertices(key, lines):
     return [ret1, ret2]
 
 
+
+"""
+                faceShapes[faceKey] = lines[i1].getNormal() / lines[i2].getNormal() 
+                faceVisibles[faceKey] = lines[i1].visible * lines[i2].visible
+"""
+
+
+class rhombi():
+
+    faces = {}
+    edges = {} 
+    vertices = {}
+
+    class face():
+        def __init__(self, faceKey, lines = None):
+            if faceKey in rhombi.faces:
+                self = rhombi.faces[faceKey]
+            else:
+                self.faceKey = faceKey
+                self.lines = lines
+                rhombi.faces[faceKey] = self
+        def getDirection(self):
+            return self.lines[0].getNormal() + self.lines[1].getNormal() 
+        def isVisible(self):
+            return self.lines[0].getNormal() + self.lines[1].getNormal() 
+
+    class edge():
+        def __init__(self, edgeKey, face):
+            if edgeKey in rhombi.edges:
+                selfD = rhombi.edges[edgeKey]
+                selfD.faces.append(face)
+                self =  selfD
+            else:
+                self.edgeKey = edgeKey
+                self.faces = [face]
+                rhombi.edges[edgeKey] = self
+
+    def __init__(self, lines):
+
+        previousIntersections = []
+        for i1 in range(len(lines)):
+            for i2 in range(i1 + 1, len(lines)):
+                p = intersection(lines[i1], lines[i2])
+                if p <> None:
+                    if p in previousIntersections:
+                        raise ValueError("multiple lines intersect at same point", p)
+                    previousIntersections.append(p)
+                    faceKey = ""
+                    for i3 in range(len(lines)):
+                        if i3 == i1:
+                            faceKey += "a"
+                        elif i3 == i2:
+                            faceKey += "b"
+                        else:
+                            faceKey += str(position(lines[i3], p))
+                    f = rhombi.face(faceKey, (lines[i1], lines[i2]))
+                    e1 = rhombi.edge(faceKey.replace('a', 'x').replace('b', '0'), f)
+                    e2 = rhombi.edge(faceKey.replace('a', 'x').replace('b', '1'), f)
+                    e3 = rhombi.edge(faceKey.replace('a', '1').replace('b', 'x'), f)
+                    e4 = rhombi.edge(faceKey.replace('a', '0').replace('b', 'x'), f)
+                    f.edges = [e1, e2, e3, e4]
+#                    f.vertices = getEdgeVertices(edgeKey1, lines) + list(reversed(getEdgeVertices(edgeKey2, lines)))
+    
+        for k, e in rhombi.edges.items():
+            e.vertices = getEdgeVertices(k, lines)
+    
+        self.faces = rhombi.faces
+        self.edges = rhombi.edges
+        self.vertices = rhombi.vertices
+    
+    def getImg(self, edgeColor = (0, 255, 0)):
+        img =  np.zeros((imgHeight,imgWidth,3), np.uint8)
+        img[:,:] = backgroundColor
+#        for faceKey, face in faces.items():
+#            drawRhombus(img, faceKey)
+        for edgeKey, edge in self.edges.items():
+            drawEdgeNew(img, edge, edgeColor)
+        return img
+
+    def __str__(self):
+        return "Rhombi, faces = {}, edges = {}".format(len(self.faces), len(self.edges))
+
 def z2imgPoint(z):
     return (imgWidth / 2 + int(np.real(z)), imgHeight / 2 - int(np.imag(z)))
 
@@ -269,6 +353,24 @@ def drawEdge(img, edgeKey):
     else:
         pass
 #        cv2.line(img = img, pt1 = z2imgPoint(v1), pt2 = z2imgPoint(v2), color = rhombusEdgeColor, thickness = rhombusEdgeThickness * 1)
+
+def drawEdgeNew(img, edge, edgeColor = None):
+    (v1, v2) = edge.vertices
+    if edgeColor:
+#        print v1, v2, edgeColor, z2imgPoint(v1), z2imgPoint(v2)
+        cv2.line(img = img, pt1 = z2imgPoint(v1), pt2 = z2imgPoint(v2), color = edgeColor, thickness = rhombusEdgeThickness)
+    elif len(edge.faces) == 2:
+        d1 = edge.faces[0].getDirection()
+        d2 = edge.faces[1].getDirection()
+        dif = abs(d1 - d1) * abs(d1 + d2)
+#        value = min(255, int(dif * 128))
+        value = 0
+        cv2.line(img = img, pt1 = z2imgPoint(v1), pt2 = z2imgPoint(v2), color = [rhombusEdgeColor[0], rhombusEdgeColor[1], value], thickness = rhombusEdgeThickness)
+    else:
+        cv2.line(img = img, pt1 = z2imgPoint(v1), pt2 = z2imgPoint(v2), color = (0, 0, 0), thickness = rhombusEdgeThickness)
+
+
+
 
 def genLines(ps, f, g = None):
     lines = []
