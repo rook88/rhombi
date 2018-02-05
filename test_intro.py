@@ -20,6 +20,7 @@ saturations = []
 
 t08 = (0.8 - angleMin) / (angleMax - angleMin)
 
+print "frameCount", frameCount
 lineCountFrames = list(np.linspace(2, lineCount, frameCount))
 for lineCountFrame in lineCountFrames:
     angle = testAngle
@@ -49,8 +50,8 @@ for i, lines, saturation in zip(range(len(linesGroup)), linesGroup, saturations)
     rhombi.rhombusEdgeColor = (hue, saturation, 255)
     rhombi.rhombusFaceColor1 = (hue, 255, 255)
     rhombi.rhombusFaceColor2 = (hue, 255, 255)
-    rhombi.genRhombi(lines)
-    img = rhombi.drawImg(lines = lines)
+    r = rhombi.rhombi(lines)
+    img = r.getImg()
     img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
     img = cv2.blur(img, (5, 5))
     img = cv2.resize(img, (rhombi.width, rhombi.height))
