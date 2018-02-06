@@ -21,7 +21,7 @@ testLineCount = None
 testFrameCount = None
 resolution = None
 
-opts, args = getopt.getopt(sys.argv[1:], None, ['testmode', 'file=', 'angle=','anglemin=','anglemax=', 'linecount=', 'framecount=', 'testtime=', 'resolution='])
+opts, args = getopt.getopt(sys.argv[1:], None, ['testmode', 'file=', 'angle=','anglemin=','anglemax=', 'linecount=', 'framecount=', 'testtime=', 'resolution=', 'edgelength='])
 
 for o, a in opts:
     if o == '--testmode':
@@ -42,6 +42,8 @@ for o, a in opts:
         resolution = a
     if o == '--framecount':
         testFrameCount = int(a)
+    if o == '--edgelength':
+        edgeLength = int(a)
         
 (width, height) = (640, 480)
 if resolution:
