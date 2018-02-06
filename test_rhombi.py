@@ -40,7 +40,7 @@ for i, lines, hue, saturation in zip(range(len(linesGroup)), linesGroup, hues, s
     framePct = float(i) / len(linesGroup)
     r = rhombi.rhombi(lines)
     print("frame {}/{} framePct = {} line count= {}, saturation = {}, rhombi = {}".format(i + 1, len(linesGroup), framePct, len(lines), saturation, r))
-    img = r.getImg(hue = hue, saturation = saturation, edgeColor = (0, 0, 0))
+    img = r.getImg(hue = hue, saturation = saturation, faceColor = (60, 255, 40), faceSplit = 0.3, edgeColor = (60, 255, 255), verticeRadius = 15)
 #    img = r.getImg(edgeColor = (80, 255, 0))
     img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
     img = cv2.blur(img, (5, 5))

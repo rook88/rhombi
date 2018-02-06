@@ -160,6 +160,30 @@ class rhombi():
             return self.lines[0].isVisible() * self.lines[1].isVisible() 
         def getShape(self):
             return lines[0].getNormal() / lines[1].getNormal() 
+        def draw(self, img, faceColor = None, faceSplit = None, hue = None, saturation = None):
+            if faceColor:
+                color = faceColor
+            else:
+                d = face.getDirection()
+                if saturation <> None:
+                    S = saturation
+                else:
+                    S = 255
+                if hue <> None:
+                    H = int(hue * saturation / 255.0 + (1 - saturation / 255.0) * 180 * (abs(np.imag(np.log((d))) / np.pi % 1.0)))
+                else:
+                    H = int(180 * (abs(np.imag(np.log((d))) / np.pi % 1.0)))
+                value = 255 * face.isVisible()
+                color = (H, S, value)
+            vertices = self.vertices
+            points = [z2imgPoint(v.position) for v in vertices]
+            points1 = points[0:-1] 
+            points2 = points[2:] + points[0:1]
+            cv2.fillConvexPoly(img, np.array(points1), color)
+            if faceSplit:
+                color = color[0], color[1], 255 * faceSplit + (1 - faceSplit) * color[2]
+            cv2.fillConvexPoly(img, np.array(points2), color)
+
 
     class edge():
         def __init__(self, edgeKey, face):
@@ -174,6 +198,25 @@ class rhombi():
                 v2 = rhombi.vertice(edgeKey.replace('x', '1'))
                 self.vertices = [v1, v2]
                 rhombi.edges[edgeKey] = self
+        def draw(self, img, edgeColor = None, hue = None, saturation = None):
+            v1, v2 = self.vertices
+            pt1, pt2 = z2imgPoint(v1.position), z2imgPoint(v2.position)
+            if edgeColor:
+#        print v1, v2, edgeColor, z2imgPoint(v1), z2imgPoint(v2)
+                color = edgeColor
+            elif len(edge.faces) == 2:
+                d1 = edge.faces[0].getDirection()
+                d2 = edge.faces[1].getDirection()
+                dif = abs(d1 - d2) * abs(d1 + d2) / d1 / d2
+                hue = int(180 * (abs(np.imag(np.log((d1))) / np.pi % 1.0)))
+                value = 255
+                value = 255 - min(255, int(dif * 128))
+                color = [hue, 255, value]
+#        print color, dif, d1, d2
+            else:
+                return
+            cv2.line(img = img, pt1 = pt1, pt2 = pt2, color = color, thickness = rhombusEdgeThickness)
+
 
     class vertice():
         def __init__(self, verticeKey):
@@ -191,6 +234,9 @@ class rhombi():
                 rhombi.vertices[verticeKey] = self
         def __str__(self):
             return 'vertice:' + self.verticeKey
+        def draw(self, img, radius = 0, color = (0, 0, 0)):
+            pt = z2imgPoint(self.position)
+            cv2.circle(img, pt, radius, color, -1)
 
     def __init__(self, lines):
 
@@ -220,13 +266,15 @@ class rhombi():
         self.edges = rhombi.edges
         self.vertices = rhombi.vertices
     
-    def getImg(self, hue = None, saturation = None, edgeColor = None, faceColor = None):
+    def getImg(self, hue = None, saturation = None, edgeColor = None, faceColor = None, faceSplit = None, verticeRadius = None):
         img =  np.zeros((imgHeight,imgWidth,3), np.uint8)
         img[:,:] = backgroundColor
         for faceKey, face in self.faces.items():
-            drawRhombus(img, face = face, faceColor = faceColor, hue = hue, saturation = saturation)
+            face.draw(img, faceColor = faceColor, faceSplit = faceSplit, hue = hue, saturation = saturation)
         for edgeKey, edge in self.edges.items():
-            drawEdge(img, edge, edgeColor, hue, saturation)
+            edge.draw(img, edgeColor, hue, saturation)
+        for verticeKey, vertice in self.vertices.items():
+            vertice.draw(img, color = edgeColor, radius = verticeRadius)
         return img
 
     def __str__(self):
@@ -234,50 +282,6 @@ class rhombi():
 
 def z2imgPoint(z):
     return (imgWidth / 2 + int(np.real(z)), imgHeight / 2 - int(np.imag(z)))
-
-
-def drawRhombus(img, face, faceColor = None, edgeColor = None, hue = None, saturation = None):
-    if faceColor:
-        color = faceColor
-    else:
-        d = face.getDirection()
-        if saturation <> None:
-            S = saturation
-        else:
-            S = 255
-        if hue <> None:
-            H = int(hue * saturation / 255.0 + (1 - saturation / 255.0) * 180 * (abs(np.imag(np.log((d))) / np.pi % 1.0)))
-        else:
-            H = int(180 * (abs(np.imag(np.log((d))) / np.pi % 1.0)))
-        value = 255 * face.isVisible()
-        color = (H, S, value)
-#        print d, color, saturation
-    vertices = face.vertices
-    points = np.array([z2imgPoint(v.position) for v in vertices])
-    cv2.fillConvexPoly(img, points, color)
-
-def drawEdge(img, edge, edgeColor = None, hue = None, saturation = None):
-    v1, v2 = edge.vertices
-    pt1, pt2 = z2imgPoint(v1.position), z2imgPoint(v2.position)
-    if edgeColor:
-#        print v1, v2, edgeColor, z2imgPoint(v1), z2imgPoint(v2)
-        color = edgeColor
-    elif len(edge.faces) == 2:
-        d1 = edge.faces[0].getDirection()
-        d2 = edge.faces[1].getDirection()
-        dif = abs(d1 - d2) * abs(d1 + d2) / d1 / d2
-        hue = int(180 * (abs(np.imag(np.log((d1))) / np.pi % 1.0)))
-        value = 255
-        value = 255 - min(255, int(dif * 128))
-        color = [hue, 255, value]
-#        print color, dif, d1, d2
-    else:
-        color = (0, 0, 0)
-        return
-    cv2.line(img = img, pt1 = pt1, pt2 = pt2, color = color, thickness = rhombusEdgeThickness)
-
-
-
 
 def genLines(ps, f, g = None):
     lines = []
