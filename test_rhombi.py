@@ -53,7 +53,10 @@ for i, lines, hue, saturation in zip(range(len(linesGroup)), linesGroup, hues, s
 
 
 if rhombi.outputFile:
-    imageio.mimwrite(uri = rhombi.outputFile, ims = ims, macro_block_size = None, fps = 24)
+    if 'jpg' in rhombi.outputFile:
+        cv2.imwrite(rhombi.outputFile, img)
+    else:
+        imageio.mimwrite(uri = rhombi.outputFile, ims = ims, macro_block_size = None, fps = 24)
 
 
 
