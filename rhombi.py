@@ -21,7 +21,7 @@ testLineCount = None
 testFrameCount = None
 resolution = None
 
-opts, args = getopt.getopt(sys.argv[1:], None, ['testmode', 'file=', 'angle=','anglemin=','anglemax=', 'linecount=', 'framecount=', 'testtime=', 'resolution=', 'edgelength='])
+opts, args = getopt.getopt(sys.argv[1:], None, ['testmode', 'file=', 'angle=','anglemin=','anglemax=', 'linecount=', 'linecountmin=', 'linecountmax=', 'framecount=', 'testtime=', 'resolution=', 'edgelength='])
 
 for o, a in opts:
     if o == '--testmode':
@@ -36,6 +36,10 @@ for o, a in opts:
         testAngleMin = float(a)
     if o == '--anglemax':
         testAngleMax = float(a)
+    if o == '--linecountmin':
+        testLineCountMin = float(a)
+    if o == '--linecountmax':
+        testLineCountMax = float(a)
     if o == '--linecount':
         testLineCount = int(a)
     if o == '--resolution':
@@ -70,6 +74,17 @@ if testAngleMax:
     angleMax = testAngleMax
 else:
     angleMax = 1 - (1 - angleMin) / 2
+
+if testLineCountMin:
+    lineCountMin = testLineCountMin
+else:
+    lineCountMin = 4
+
+if testLineCountMax:
+    lineCountMax = testLineCountMax
+else:
+    lineCountMax = 4
+
 
 if testFrameCount:
     frameCount = testFrameCount
@@ -194,11 +209,11 @@ class rhombi():
             points = [z2imgPoint(v.position) for v in vertices]
             points1 = points[0:-1] 
             points2 = points[2:] + points[0:1]
-            color = self.color
-            cv2.fillConvexPoly(img, np.array(points1), color)
-            if self.split:
-                color = color[0], color[1], 255 * faceSplit + (1 - faceSplit) * color[2]
-            cv2.fillConvexPoly(img, np.array(points2), color)
+            h, s, v = self.color
+            vs = (255 * self.split + (1 - self.split) * v) * self.isVisible()
+            v = v * self.isVisible()
+            cv2.fillConvexPoly(img, np.array(points1), (h, s, v))
+            cv2.fillConvexPoly(img, np.array(points2), (h, s, vs))
 
     @staticmethod
     def genEdge(edgeKey, face):
@@ -217,18 +232,12 @@ class rhombi():
             v2 = rhombi.genVertice(edgeKey.replace('x', '1'))
             self.vertices = [v1, v2]
             self.split = False
-            for i in range(len(self.edgeKey) / 2):
-                i1 = self.edgeKey[i * 2]
-                i2 = self.edgeKey[i * 2 + 1]
-                if i1 == i2 or i1 == 'x' or i2 == 'x':
-                    continue
-                self.split = True
             rhombi.edges[edgeKey] = self
         def __str__(self):
             return self.edgeKey + " " + str(self.split)
         def setColor(self, color):
-            self.thickness = 5
-            if self.split and rhombi.doublePct:
+            self.thickness = 10
+            if self.split:
                 self.color = self.faces[0].color
             elif color:
                 self.color = color
@@ -269,29 +278,18 @@ class rhombi():
                     position += rhombi.lines[i].getNormal()
             self.position = position
             rhombi.vertices[verticeKey] = self
-            self.isDouble = True
-            for i in range(len(self.verticeKey) / 2):
-                i1 = self.verticeKey[i * 2]
-                i2 = self.verticeKey[i * 2 + 1]
-                if i1 <> i2:
-                    self.isDouble = False
-                    break
         def __str__(self):
             return 'vertice:' + self.verticeKey
         def setColor(self, color, radius):
             self.color = color
-            if self.isDouble:
-                self.radius = radius * 2
-            else:
-                self.radius = radius
+            self.radius = radius
         def draw(self, img):
             pt = z2imgPoint(self.position)
             cv2.circle(img, pt, self.radius, self.color, -1)
 
-    def __init__(self, lines, doublePct):
+    def __init__(self, lines):
 
         rhombi.lines = lines
-        rhombi.doublePct = doublePct
         rhombi.faces.clear()
         rhombi.edges.clear()
         rhombi.vertices.clear()
@@ -317,11 +315,19 @@ class rhombi():
         self.edges = rhombi.edges
         self.vertices = rhombi.vertices
     
-    def setColors(self, hue = None, saturation = None, faceColor = None, faceSplit = 0.0, edgeColor = None, verticeRadius = 10):
+    def setColors(self, hue = None, saturation = None, value = None, faceColor = None, faceSplit = 0.0, edgeColor = None, verticeRadius = 10):
+        if not saturation:
+            saturation = 255
         for faceKey, face in self.faces.items():
-            face.setColor(color = faceColor, split = faceSplit)
+            if not faceColor:
+                face.setColor(color = (hue, saturation , value), split = faceSplit)
+            else:
+                face.setColor(color = faceColor, split = faceSplit)
         for edgeKey, edge in self.edges.items():
-            edge.setColor(color = edgeColor)
+            if not edgeColor:
+                edge.setColor(color = (hue, saturation, 255))
+            else:
+                edge.setColor(color = edgeColor)
         for verticeKey, vertice in self.vertices.items():
             vertice.setColor(color = edgeColor, radius = verticeRadius)
 
@@ -338,7 +344,7 @@ class rhombi():
         return img
 
     def __str__(self):
-        return "Rhombi, faces = {}, edges = {}, vertices = {}, doublePct = {}".format(len(self.faces), len(self.edges), len(self.vertices), rhombi.doublePct)
+        return "Rhombi, faces = {}, edges = {}, vertices = {}".format(len(self.faces), len(self.edges), len(self.vertices))
 
 def z2imgPoint(z):
     return (imgWidth / 2 + int(np.real(z)), imgHeight / 2 - int(np.imag(z)))
@@ -382,28 +388,19 @@ def genK(n):
     return 4.0 ** (1.0 * (frameCount - 1 - n) / (frameCount - 1)) * 7.0 ** (1.0 * n / (frameCount - 1))
 """
 
-def genStar(lineCount, angle = (np.sqrt(5) - 1) / 2, angleDelta = 0.0, radiusMin = 0.0, radiusMax = 1.0, center = 0.0, time = 0.0, doublePct = 0.0, normalLength = 1.0):
+def genStar(lineCount, angle = (np.sqrt(5) - 1) / 2, angleDelta = 0.0, radiusMin = 0.0, radiusMax = 1.0, center = 0.0, time = 0.0, normalLength = 1.0):
     ret = []
-    if not doublePct:
-        length = normalLength
-    else:
-        length = normalLength / 2
-    for nn in range(lineCount):
-        n = nn
+    length = normalLength
+    visible = 1.0
+    for n in range(int(np.ceil(lineCount))):
         a = (angle * n + angleDelta * time) * a2pi
         r = (radiusMin * n + radiusMax * (lineCount - n)) / lineCount
         sp = np.exp(a) * r + center
         d = 1j * np.exp(a)
-        line1 = line(sp, d, length)
+        if n + 1 > lineCount:
+            visible = (lineCount - n)
+        line1 = line(sp, d, length, visible)
         ret.append(line1)
-        if doublePct:
-            n = nn + doublePct / 2
-            a = (angle * n + angleDelta * time) * a2pi
-            r = (radiusMin * n + radiusMax * (lineCount - n)) / lineCount
-            sp = np.exp(a) * r + center
-            d = 1j * np.exp(a)
-            line2 = line(sp, d, length)
-            ret.append(line2)
     return ret
 
 
