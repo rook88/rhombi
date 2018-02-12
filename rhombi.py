@@ -91,10 +91,6 @@ if testFrameCount:
 
 ts = list(np.linspace(0, 1, frameCount))
 
-if testT:
-    ts = [testT]
-    frameCount = 1
-
 if testAngle:
     t = (testAngle - angleMin) / (angleMax - angleMin)
     ts = [t]
@@ -104,6 +100,12 @@ if testAngle:
 if testFrameCount:
     frameCount = testFrameCount
 
+if testT <> None:
+    ts = [testT]
+    frameCount = 1
+
+
+    
 print "frameCount = ", frameCount
 print "resolution = ", resolution
 print "ts = ", ts

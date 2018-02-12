@@ -38,30 +38,33 @@ lineCountRaw = lineCountMin
 lineCount = lineCountMin
 lineCountDelta = 1.0 / 24
 
-edgeLength = rhombi.height / lineCountMin * 5
+edgeLength = rhombi.height / lineCountMin * 7
 
-radiusMin = 0.80
+radiusMin = 0.99
 
 ims = []
 i = 0
 for t in ts:
     i += 1
-    angle = (1 - t) * angleMin + t * angleMax
+    angle = (1 - np.sqrt(t)) * angleMin + np.sqrt(t) * angleMax
     if lineCountRaw < lineCount - lineCountDelta / 2:
         lineCountRaw += lineCountDelta
+    if testT:
+        lineCountRaw = int((1 - t) * lineCountMin + t * (lineCountMax + 1))
     lineCount = int((1 - t) * lineCountMin + t * (lineCountMax + 1))
     irrationality = rhombi.measureIrrationality(angle)
+    radiusMin = 0.99 * (1 - np.clip(3 * t / 2 - 0.5, 0.0, 1.0))
     print("t = {}, angle = {} irrationality = {}, radiusMin = {}".format(t, angle, irrationality, radiusMin))
     star = rhombi.genStar(lineCountRaw, angle = angle, radiusMin = radiusMin, radiusMax = 1, time = t, normalLength = edgeLength * lineCountMin / lineCountRaw)
     r = rhombi.rhombi(star)
     print("frame {}/{} framePct = {} line count= {}, saturation = {}, rhombi = {}".format(i, frameCount, float(i) / frameCount, lineCountRaw, "?", r))
-    split = np.clip(t - 0.5, 0.0, 0.3)
+    split = np.clip(t - 0.2, 0.0, 1.0)
     r.setColors(hue = 180 * t, value = 50, faceSplit = split, verticeRadius = 0)
     img = r.getImg()
     img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
     img = cv2.blur(img, (5, 5))
     img = cv2.resize(img, (rhombi.width, rhombi.height))
-    if frameCount < 10:
+    if frameCount < 10 or testAngle:
         cv2.imshow('image',img)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
