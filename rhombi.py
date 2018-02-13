@@ -193,18 +193,21 @@ class rhombi():
             return self.lines[0].isVisible() * self.lines[1].isVisible() 
         def getShape(self):
             return lines[0].getNormal() / lines[1].getNormal() 
-        def setColor(self, color, split):
-            if color <> None:
-                self.color = color
-            else:    
-                d = self.getDirection()
-                S = 255
-                H = int(180 * (abs(np.imag(np.log((d))) / np.pi % 1.0)))
-#                if hue <> None:
-#                    H = int(hue * saturation / 255.0 + (1 - saturation / 255.0) * 180 * (abs(np.imag(np.log((d))) / np.pi % 1.0)))
-#                else:
-                value = 255 #* self.isVisible()
-                self.color = (H, S, value)
+        def setColor(self, color, split, byDirection = 0.0):
+            h1, s1, v1 = color
+            d = self.getDirection()
+            h2 = int(180 * (abs(np.imag(np.log((d))) / np.pi % 1.0)))
+            s2 = 255
+            v2 = 255 
+            """* self.isVisible()
+                if hue <> None:
+                    H = int(hue * saturation / 255.0 + (1 - saturation / 255.0) * 180 * (abs(np.imag(np.log((d))) / np.pi % 1.0)))
+                else:
+            """
+            h = h1 * (1 - byDirection) + h2 * byDirection
+            s = s1 * (1 - byDirection) + s2 * byDirection
+            v = v1 * (1 - byDirection) + v2 * byDirection
+            self.color = (h, s, v)
             self.split = split
         def draw(self, img):
             vertices = self.vertices
@@ -237,8 +240,11 @@ class rhombi():
             rhombi.edges[edgeKey] = self
         def __str__(self):
             return self.edgeKey + " " + str(self.split)
-        def setColor(self, color):
-            self.thickness = 10
+        def setColor(self, color, thickness):
+            if thickness == None:
+                self.thickness = 10
+            else:
+                self.thickness = int(thickness)
             if self.split:
                 self.color = self.faces[0].color
             elif color:
@@ -284,7 +290,7 @@ class rhombi():
             return 'vertice:' + self.verticeKey
         def setColor(self, color, radius):
             self.color = color
-            self.radius = radius
+            self.radius = int(radius)
         def draw(self, img):
             pt = z2imgPoint(self.position)
             cv2.circle(img, pt, self.radius, self.color, -1)
@@ -317,19 +323,17 @@ class rhombi():
         self.edges = rhombi.edges
         self.vertices = rhombi.vertices
     
-    def setColors(self, hue = None, saturation = None, value = None, faceColor = None, faceSplit = 0.0, edgeColor = None, verticeRadius = 10):
+    def setColors(self, hue = None, saturation = None, value = None, faceColor = None, faceSplit = 0.0, faceByDirection = 0.0, edgeColor = None, edgeThickness = None, verticeRadius = 10):
         if not saturation:
             saturation = 255
+        if not edgeColor:
+            edgeColor = (hue, saturation, 0)
+        if not faceColor:
+            faceColor = (hue, saturation , value)
         for faceKey, face in self.faces.items():
-            if not faceColor:
-                face.setColor(color = (hue, saturation , value), split = faceSplit)
-            else:
-                face.setColor(color = faceColor, split = faceSplit)
+            face.setColor(color = faceColor, split = faceSplit, byDirection = faceByDirection)
         for edgeKey, edge in self.edges.items():
-            if not edgeColor:
-                edge.setColor(color = (hue, saturation, 255))
-            else:
-                edge.setColor(color = edgeColor)
+            edge.setColor(color = edgeColor, thickness = edgeThickness)
         for verticeKey, vertice in self.vertices.items():
             vertice.setColor(color = edgeColor, radius = verticeRadius)
 
@@ -390,12 +394,14 @@ def genK(n):
     return 4.0 ** (1.0 * (frameCount - 1 - n) / (frameCount - 1)) * 7.0 ** (1.0 * n / (frameCount - 1))
 """
 
-def genStar(lineCount, angle = (np.sqrt(5) - 1) / 2, angleDelta = 0.0, radiusMin = 0.0, radiusMax = 1.0, center = 0.0, time = 0.0, normalLength = 1.0):
+def genStar(lineCount, angle = (np.sqrt(5) - 1) / 2, angleDelta = 0.0, radiusMin = 0.0, radiusMax = 1.0, center = 0.0, time = None, normalLength = 1.0):
+    if time <> None:
+        angleDelta *= time
     ret = []
     length = normalLength
     visible = 1.0
     for n in range(int(np.ceil(lineCount))):
-        a = (angle * n + angleDelta * time) * a2pi
+        a = (angle * n + angleDelta) * a2pi
         r = (radiusMin * n + radiusMax * (lineCount - n)) / lineCount
         sp = np.exp(a) * r + center
         d = 1j * np.exp(a)

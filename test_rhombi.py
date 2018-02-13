@@ -44,22 +44,75 @@ radiusMin = 0.99
 
 ims = []
 i = 0
+
+"""
+IntroEnd
+2:36
+156
+
+End
+4:40
+280 
+
+(/ 156.0 280)
+0.5571428571428572
+
+(* 24 280)
+
+6720 frames
+
+0.01 = 67 frames 2.8 seconds
+
+"""
+
+angleDelta = 0.0
+angleDelta2 = 0.01
+
 for t in ts:
     i += 1
+    introLeft = np.clip(t * 280 / 156, 0, 1)
+    outroLeft = np.clip((t * 280 / 156 - 1) / (280.0 / 156 - 1), 0, 1)
+    intro = 1 - introLeft
+    outro = 1 - outroLeft
+    edgeThickness = 30.0 * intro + 5 * introLeft  
+    verticeRadius = edgeThickness * (1 + intro)
+    faceSplit = np.clip(introLeft * intro * 4, 0.0, 0.7)
     angle = (1 - np.sqrt(t)) * angleMin + np.sqrt(t) * angleMax
+    lineCount = int(intro * lineCountMin + introLeft * lineCountMax)
+    angleDelta2 *= 0.999 
+    angleDelta += angleDelta2
+    if outro < 0.1:
+        lineCount = 80
     if lineCountRaw < lineCount - lineCountDelta / 2:
         lineCountRaw += lineCountDelta
     if testT:
-        lineCountRaw = int((1 - t) * lineCountMin + t * (lineCountMax + 1))
-    lineCount = int((1 - t) * lineCountMin + t * (lineCountMax + 1))
+        lineCountRaw = lineCount
+    if outro < 0.1:
+        normalLength = edgeLength * lineCountMin / lineCountMax * (1 + (0.1 - outro) * 10)
+    else:
+        normalLength = edgeLength * lineCountMin / lineCountRaw 
+        print normalLength, edgeLength, lineCountMin, lineCountRaw
     irrationality = rhombi.measureIrrationality(angle)
     radiusMin = 0.99 * (1 - np.clip(3 * t / 2 - 0.5, 0.0, 1.0))
-    print("t = {}, angle = {} irrationality = {}, radiusMin = {}".format(t, angle, irrationality, radiusMin))
-    star = rhombi.genStar(lineCountRaw, angle = angle, radiusMin = radiusMin, radiusMax = 1, time = t, normalLength = edgeLength * lineCountMin / lineCountRaw)
+    print("t = {}, angle = {} irrationality = {}, radiusMin = {}, intro = {}, outro = {}, normalLength = {}, edgeLength = {}".format(t, angle, irrationality, radiusMin, intro, outro, normalLength, edgeLength))
+    star = rhombi.genStar(lineCountRaw, angle = angle, radiusMin = radiusMin, radiusMax = 1, angleDelta = angleDelta, normalLength = normalLength)
     r = rhombi.rhombi(star)
-    print("frame {}/{} framePct = {} line count= {}, saturation = {}, rhombi = {}".format(i, frameCount, float(i) / frameCount, lineCountRaw, "?", r))
-    split = np.clip(t - 0.2, 0.0, 1.0)
-    r.setColors(hue = 180 * t, value = 50, faceSplit = split, verticeRadius = 0)
+    if intro:
+        edgeColor = (180 * intro, 255, 255)
+        faceByDirection = 0
+        value = 50
+        saturation = 255
+        faceColor = (180 * intro, saturation, value)
+    else:
+        faceByDirection = 1 - irrationality
+        value = np.clip(50 * outro + 10000 * outroLeft, 0, 150)
+        saturation = np.clip(255 - 10000 * outroLeft, 0, 255)
+        edgeColor = (0, saturation, np.clip(255 - outroLeft * 10000, 0, 255))
+        faceColor = (0, saturation, value)
+
+    print("frame {}/{} framePct = {} line count= {}, saturation = {}, rhombi = {}".format(i, frameCount, float(i) / frameCount, lineCountRaw, saturation, r))
+
+    r.setColors(hue = 180 * intro, value = value, saturation = saturation, faceColor = faceColor, edgeColor = edgeColor, faceSplit = faceSplit, verticeRadius = verticeRadius, edgeThickness = edgeThickness, faceByDirection = faceByDirection)
     img = r.getImg()
     img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
     img = cv2.blur(img, (5, 5))
