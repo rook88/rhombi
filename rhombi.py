@@ -421,6 +421,6 @@ def measureIrrationality(x):
     ret = 0
     for i in range(int(np.sqrt(nCount))):
         ret += dx[i]
-    return min(ret * nCount * np.sqrt(nCount), 0.10) * 10
+    return min(ret * nCount * np.sqrt(nCount), 0.20) * 5
 
     

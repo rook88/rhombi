@@ -76,8 +76,8 @@ for t in ts:
     outro = 1 - outroLeft
     edgeThickness = 30.0 * intro + 5 * introLeft  
     verticeRadius = edgeThickness * (1 + intro)
-    faceSplit = np.clip(introLeft * intro * 4, 0.0, 0.7)
-    angle = (1 - np.sqrt(t)) * angleMin + np.sqrt(t) * angleMax
+    faceSplit = np.clip(introLeft * introLeft * intro * 8, 0.0, 0.7)
+    angle = (1 - t) * angleMin + t * angleMax
     lineCount = int(intro * lineCountMin + introLeft * lineCountMax)
     angleDelta2 *= 0.999 
     angleDelta += angleDelta2
