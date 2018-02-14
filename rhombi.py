@@ -188,7 +188,10 @@ class rhombi():
         def __str__(self):
             return "face:" + self.faceKey + str([str(v.position) for v in self.vertices])
         def getDirection(self):
-            return self.lines[0].getNormal() + self.lines[1].getNormal() 
+            ret = self.lines[0].getNormal() + self.lines[1].getNormal() 
+#            if np.real(ret) < 0:
+#                ret = -ret
+            return ret
         def isVisible(self):
             return self.lines[0].isVisible() * self.lines[1].isVisible() 
         def getShape(self):
@@ -227,7 +230,9 @@ class rhombi():
             e.faces.append(face)
             return e 
         else:
-            return rhombi.edge(edgeKey, face)
+            ret = rhombi.edge(edgeKey, face)
+            rhombi.edges[edgeKey] = ret
+            return ret
 
     class edge():
         def __init__(self, edgeKey, face):
@@ -247,6 +252,15 @@ class rhombi():
                 self.thickness = int(thickness)
             if self.split:
                 self.color = self.faces[0].color
+            elif color and len(self.faces) == 2:
+                (h, s, v) = color
+                d1 = self.faces[0].getDirection()
+                d2 = self.faces[1].getDirection()
+                dif = abs(d1 - d2) * abs(d1 + d2) / abs(d1) / abs(d2)
+                dif = int(100 * dif)
+                v = np.clip(dif, 0, 255)
+                self.color = [h, s, v]
+                self.color = color
             elif color:
                 self.color = color
             elif len(self.faces) == 2:

@@ -27,11 +27,6 @@ saturations = []
 
 t08 = (0.8 - angleMin) / (angleMax - angleMin)
 
-
-
-#ts = list(np.linspace(0, 1, frameCount))
-#ts = [(16.0 - 16 ** (1 - t)) / 15 for t in ts]
-
 print ts
 
 lineCountRaw = lineCountMin
@@ -66,50 +61,54 @@ End
 """
 
 angleDelta = 0.0
-angleDelta2 = 0.01
+angleDelta2 = 0.03
 
 for t in ts:
     i += 1
-    introLeft = np.clip(t * 280 / 156, 0, 1)
-    outroLeft = np.clip((t * 280 / 156 - 1) / (280.0 / 156 - 1), 0, 1)
+    introLeft = np.clip(t * 280 / 157, 0, 1)
+    outroLeft = np.clip((t * 280 / 157 - 1) / (280.0 / 157 - 1), 0, 1)
     intro = 1 - introLeft
     outro = 1 - outroLeft
-    edgeThickness = 30.0 * intro + 5 * introLeft  
-    verticeRadius = edgeThickness * (1 + intro)
-    faceSplit = np.clip(introLeft * introLeft * intro * 8, 0.0, 0.7)
     angle = (1 - t) * angleMin + t * angleMax
     lineCount = int(intro * lineCountMin + introLeft * lineCountMax)
-    angleDelta2 *= 0.999 
+    angleDelta2 *= 0.9995 
     angleDelta += angleDelta2
-    if outro < 0.1:
-        lineCount = 80
+    if outro < 0.2:
+        lineCount = 90
     if lineCountRaw < lineCount - lineCountDelta / 2:
         lineCountRaw += lineCountDelta
     if testT:
         lineCountRaw = lineCount
-    if outro < 0.1:
-        normalLength = edgeLength * lineCountMin / lineCountMax * (1 + (0.1 - outro) * 10)
+    if outro < 0.2:
+        normalLength = edgeLength * lineCountMin / lineCountMax * (1 + (0.2 - outro) * 5)
     else:
         normalLength = edgeLength * lineCountMin / lineCountRaw 
         print normalLength, edgeLength, lineCountMin, lineCountRaw
     irrationality = rhombi.measureIrrationality(angle)
-    radiusMin = 0.99 * (1 - np.clip(3 * t / 2 - 0.5, 0.0, 1.0))
-    print("t = {}, angle = {} irrationality = {}, radiusMin = {}, intro = {}, outro = {}, normalLength = {}, edgeLength = {}".format(t, angle, irrationality, radiusMin, intro, outro, normalLength, edgeLength))
-    star = rhombi.genStar(lineCountRaw, angle = angle, radiusMin = radiusMin, radiusMax = 1, angleDelta = angleDelta, normalLength = normalLength)
-    r = rhombi.rhombi(star)
+    saturation = 255
     if intro:
-        edgeColor = (180 * intro, 255, 255)
+        radiusMin = 0.99 * (1 - np.clip((introLeft - 0.6) * 5, 0.0, 2.0))
+        faceSplit = np.clip(introLeft * introLeft * intro * 8, 0.0, 0.7) * irrationality
+        edgeColor = (180 * intro * 2, 255, 255)
         faceByDirection = 0
         value = 50
-        saturation = 255
-        faceColor = (180 * intro, saturation, value)
+        faceColor = (180 * intro * 2, saturation, value * irrationality)
+        edgeThickness = 30.0 * intro + 5 * introLeft
+        verticeRadius = edgeThickness * (1 + intro * irrationality)
     else:
+        edgeThickness = 5
+        verticeRadius = edgeThickness
+        radiusMin = np.clip(1.02 * np.sin(-np.pi / 2 + 2 * np.pi * outroLeft), -0.999, 0.999)
+        faceSplit = 0.7
         faceByDirection = 1 - irrationality
         value = np.clip(50 * outro + 10000 * outroLeft, 0, 150)
-        saturation = np.clip(255 - 10000 * outroLeft, 0, 255)
-        edgeColor = (0, saturation, np.clip(255 - outroLeft * 10000, 0, 255))
-        faceColor = (0, saturation, value)
+        edgeColor = (0, saturation, np.clip(255 - outroLeft * 30000, 0, 255))
+        faceColor = (180 * outro * 2, saturation, value)
 
+    star = rhombi.genStar(lineCountRaw, angle = angle, radiusMin = radiusMin, radiusMax = 1, angleDelta = angleDelta, normalLength = normalLength)
+    r = rhombi.rhombi(star)
+
+    print("t = {}, angle = {} irrationality = {}, radiusMin = {}, angleMin = {},intro = {}, outro = {}, normalLength = {}, edgeLength = {}".format(t, angle, irrationality, radiusMin, angleMin, intro, outro, normalLength, edgeLength))
     print("frame {}/{} framePct = {} line count= {}, saturation = {}, rhombi = {}".format(i, frameCount, float(i) / frameCount, lineCountRaw, saturation, r))
 
     r.setColors(hue = 180 * intro, value = value, saturation = saturation, faceColor = faceColor, edgeColor = edgeColor, faceSplit = faceSplit, verticeRadius = verticeRadius, edgeThickness = edgeThickness, faceByDirection = faceByDirection)
