@@ -18,15 +18,6 @@ lineCountMax = rhombi.lineCountMax
 
 ts = rhombi.ts
 
-hueStart = 0
-hueEnd = 180
-
-linesGroup = []
-hues = []
-saturations = []
-
-t08 = (0.8 - angleMin) / (angleMax - angleMin)
-
 print ts
 
 lineCountRaw = lineCountMin
@@ -35,7 +26,7 @@ lineCountDelta = 1.0 / 24
 
 edgeLength = rhombi.height / lineCountMin * 7
 
-radiusMin = 0.99
+radiusMin = 0.999
 
 ims = []
 i = 0
@@ -61,7 +52,7 @@ End
 """
 
 angleDelta = 0.0
-angleDelta2 = 0.03
+angleDelta2 = 0.003
 
 for t in ts:
     i += 1
@@ -77,22 +68,23 @@ for t in ts:
         lineCount = 90
     if lineCountRaw < lineCount - lineCountDelta / 2:
         lineCountRaw += lineCountDelta
-    if testT:
+    if testT or testAngle:
         lineCountRaw = lineCount
     if outro < 0.2:
         normalLength = edgeLength * lineCountMin / lineCountMax * (1 + (0.2 - outro) * 5)
     else:
-        normalLength = edgeLength * lineCountMin / lineCountRaw 
+        normalLength = edgeLength * lineCountMin / lineCountRaw * np.clip(1.9 - intro, 0.9, 1.0) 
         print normalLength, edgeLength, lineCountMin, lineCountRaw
     irrationality = rhombi.measureIrrationality(angle)
     saturation = 255
     if intro:
-        radiusMin = 0.99 * (1 - np.clip((introLeft - 0.6) * 5, 0.0, 2.0))
-        faceSplit = np.clip(introLeft * introLeft * intro * 8, 0.0, 0.7) * irrationality
-        edgeColor = (180 * intro * 2, 255, 255)
+        radiusMin = 0.999 * (1 - np.clip((introLeft - 0.6) * 5, 0.0, 2.0))
+        faceSplit = 0.0
+#        faceSplit = 0.0 np.clip(introLeft * introLeft * intro * 8, 0.0, 0.7) * irrationality
+        edgeColor = (180 * intro * 5 % 180, 255, 255)
         faceByDirection = 0
-        value = 50
-        faceColor = (180 * intro * 2, saturation, value * irrationality)
+        value = 120
+        faceColor = (180 * intro * 3 % 180, saturation, value * irrationality)
         edgeThickness = 30.0 * intro + 5 * introLeft
         verticeRadius = edgeThickness * (1 + intro * irrationality)
     else:
@@ -105,14 +97,17 @@ for t in ts:
         edgeColor = (0, saturation, np.clip(255 - outroLeft * 30000, 0, 255))
         faceColor = (180 * outro * 2, saturation, value)
 
-    star = rhombi.genStar(lineCountRaw, angle = angle, radiusMin = radiusMin, radiusMax = 1, angleDelta = angleDelta, normalLength = normalLength)
+    star = rhombi.genStar(lineCountRaw, angle = angle, radiusMin = radiusMin, radiusMax = 1.0, angleDelta = angleDelta, normalLength = normalLength)
     r = rhombi.rhombi(star)
 
     print("t = {}, angle = {} irrationality = {}, radiusMin = {}, angleMin = {},intro = {}, outro = {}, normalLength = {}, edgeLength = {}".format(t, angle, irrationality, radiusMin, angleMin, intro, outro, normalLength, edgeLength))
     print("frame {}/{} framePct = {} line count= {}, saturation = {}, rhombi = {}".format(i, frameCount, float(i) / frameCount, lineCountRaw, saturation, r))
+    for line in star:
+        print line.somePoint
 
     r.setColors(hue = 180 * intro, value = value, saturation = saturation, faceColor = faceColor, edgeColor = edgeColor, faceSplit = faceSplit, verticeRadius = verticeRadius, edgeThickness = edgeThickness, faceByDirection = faceByDirection)
     img = r.getImg()
+#    img = rhombi.drawLines(star)
     img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
     img = cv2.blur(img, (5, 5))
     img = cv2.resize(img, (rhombi.width, rhombi.height))
@@ -129,5 +124,6 @@ if rhombi.outputFile:
     else:
         imageio.mimwrite(uri = rhombi.outputFile, ims = ims, macro_block_size = None, fps = 24)
 
+cv2.imwrite("last.jpg", img)
 
 

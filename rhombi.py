@@ -397,9 +397,9 @@ def drawLines(lines):
     img =  np.zeros((imgHeight,imgWidth,3), np.uint8)
     img[:,:] = backgroundColor
     for line in lines:
-        pt1 = line.somePoint - 30 * line.direction
-        pt2 = line.somePoint + 30 * line.direction
-        drawEdgeOld(img, pt1, pt2)
+        pt1 = (line.somePoint - 3 * line.direction) * 1000
+        pt2 = (line.somePoint + 3 * line.direction) * 1000
+        cv2.line(img = img, pt1 = z2imgPoint(pt1), pt2 = z2imgPoint(pt2), color = (255, 255, 255), thickness = 10)
     return img
 
 """
@@ -414,15 +414,18 @@ def genStar(lineCount, angle = (np.sqrt(5) - 1) / 2, angleDelta = 0.0, radiusMin
     ret = []
     length = normalLength
     visible = 1.0
-    for n in range(int(np.ceil(lineCount))):
+#    for n in range(int(np.ceil(lineCount))):
+    for n in range(int(lineCount)):
         a = (angle * n + angleDelta) * a2pi
-        r = (radiusMin * n + radiusMax * (lineCount - n)) / lineCount
+        nrad = n 
+#        r = (radiusMin * n + radiusMax * (lineCount - n)) / lineCount
+        r = (radiusMin * nrad + radiusMax * (lineCount - nrad)) / lineCount
         sp = np.exp(a) * r + center
         d = 1j * np.exp(a)
-        if n + 1 > lineCount:
-            visible = (lineCount - n)
-        line1 = line(sp, d, length, visible)
-        ret.append(line1)
+#        if n + 1 > lineCount:
+#            visible = (lineCount - n)
+        l = line(sp, d, length, visible)
+        ret.append(l)
     return ret
 
 
