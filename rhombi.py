@@ -199,7 +199,7 @@ class rhombi():
         def setColor(self, color, split, byDirection = 0.0):
             h1, s1, v1 = color
             d = self.getDirection()
-            h2 = int(180 * (abs(np.imag(np.log((d))) / np.pi % 1.0)))
+            h2 = int(180 * (abs(np.imag(np.log((d))) / 2 / np.pi % 1.0)))
             s2 = 255
             v2 = 255 
             """* self.isVisible()
@@ -414,16 +414,16 @@ def genStar(lineCount, angle = (np.sqrt(5) - 1) / 2, angleDelta = 0.0, radiusMin
     ret = []
     length = normalLength
     visible = 1.0
-#    for n in range(int(np.ceil(lineCount))):
-    for n in range(int(lineCount)):
+    for n in range(int(np.ceil(lineCount))):
+#    for n in range(int(lineCount)):
         a = (angle * n + angleDelta) * a2pi
         nrad = n 
 #        r = (radiusMin * n + radiusMax * (lineCount - n)) / lineCount
         r = (radiusMin * nrad + radiusMax * (lineCount - nrad)) / lineCount
         sp = np.exp(a) * r + center
         d = 1j * np.exp(a)
-#        if n + 1 > lineCount:
-#            visible = (lineCount - n)
+        if n + 1 > lineCount:
+            visible = (lineCount - n)
         l = line(sp, d, length, visible)
         ret.append(l)
     return ret

@@ -61,6 +61,13 @@ for t in ts:
     intro = 1 - introLeft
     outro = 1 - outroLeft
     angle = (1 - t) * angleMin + t * angleMax
+    angle2 = angle
+    if angle > 0.85:
+        angle2 = 1.7 - angle
+    if angle > 0.8:
+        angle1 = 0.8 + np.sin((angle - 0.8) * 10 * np.pi) / np.pi / 10
+        angle = 0.8 * angle2 + 0.2 * angle1
+        print angle1, angle2, angle
     lineCount = int(intro * lineCountMin + introLeft * lineCountMax)
     angleDelta2 *= 0.9995 
     angleDelta += angleDelta2
@@ -77,33 +84,35 @@ for t in ts:
         print normalLength, edgeLength, lineCountMin, lineCountRaw
     irrationality = rhombi.measureIrrationality(angle)
     saturation = 255
+    radiusMinMax = 0.9999999
     if intro:
-        radiusMin = 0.999 * (1 - np.clip((introLeft - 0.6) * 5, 0.0, 2.0))
+        radiusMin = radiusMinMax * (1 - np.clip((introLeft - 0.6) * 5, 0.0, 2.0))
         faceSplit = 0.0
-#        faceSplit = 0.0 np.clip(introLeft * introLeft * intro * 8, 0.0, 0.7) * irrationality
-        edgeColor = (180 * intro * 5 % 180, 255, 255)
+        edgeHue = 180 * introLeft * 4 % 180
+        faceHue = edgeHue + 30 * np.sin(2 * np.pi * 7 * introLeft)
+        edgeColor = (edgeHue, 255, 255)
         faceByDirection = 0
         value = 120
-        faceColor = (180 * intro * 3 % 180, saturation, value * irrationality)
+        faceColor = (faceHue, saturation, value * irrationality)
         edgeThickness = 30.0 * intro + 5 * introLeft
         verticeRadius = edgeThickness * (1 + intro * irrationality)
     else:
         edgeThickness = 5
         verticeRadius = edgeThickness
-        radiusMin = np.clip(1.02 * np.sin(-np.pi / 2 + 2 * np.pi * outroLeft), -0.999, 0.999)
+        radiusMin = np.clip(1.02 * np.sin(-np.pi / 2 + 2 * np.pi * outroLeft), -1 * radiusMinMax, radiusMinMax)
         faceSplit = 0.7
         faceByDirection = 1 - irrationality
-        value = np.clip(50 * outro + 10000 * outroLeft, 0, 150)
-        edgeColor = (0, saturation, np.clip(255 - outroLeft * 30000, 0, 255))
-        faceColor = (180 * outro * 2, saturation, value)
+        value = np.clip(50 * outro + 5000 * outroLeft, 0, 150)
+        edgeColor = (0, saturation, np.clip(255 - outroLeft * 20000, 0, 255))
+        faceColor = (180 * outroLeft * 4 % 180, saturation, value)
 
-    star = rhombi.genStar(lineCountRaw, angle = angle, radiusMin = radiusMin, radiusMax = 1.0, angleDelta = angleDelta, normalLength = normalLength)
+    star = rhombi.genStar(lineCountRaw, angle = angle, radiusMin = radiusMin, radiusMax = 1, angleDelta = angleDelta, normalLength = normalLength)
     r = rhombi.rhombi(star)
 
     print("t = {}, angle = {} irrationality = {}, radiusMin = {}, angleMin = {},intro = {}, outro = {}, normalLength = {}, edgeLength = {}".format(t, angle, irrationality, radiusMin, angleMin, intro, outro, normalLength, edgeLength))
     print("frame {}/{} framePct = {} line count= {}, saturation = {}, rhombi = {}".format(i, frameCount, float(i) / frameCount, lineCountRaw, saturation, r))
-    for line in star:
-        print line.somePoint
+#    for line in star:
+#        print line.somePoint / line.direction / 1j
 
     r.setColors(hue = 180 * intro, value = value, saturation = saturation, faceColor = faceColor, edgeColor = edgeColor, faceSplit = faceSplit, verticeRadius = verticeRadius, edgeThickness = edgeThickness, faceByDirection = faceByDirection)
     img = r.getImg()
