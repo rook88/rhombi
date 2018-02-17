@@ -198,18 +198,35 @@ class rhombi():
             return lines[0].getNormal() / lines[1].getNormal() 
         def setColor(self, color, split, byDirection = 0.0):
             h1, s1, v1 = color
+            col1 = cv2.cvtColor(np.uint8([[[int(h1), int(s1), int(v1)]]]), cv2.COLOR_HSV2RGB)
             d = self.getDirection()
             h2 = int(180 * (abs(np.imag(np.log((d))) / 2 / np.pi % 1.0)))
             s2 = 255
             v2 = 255 
+            col2 = cv2.cvtColor(np.uint8([[[int(h2), int(s2), int(v2)]]]), cv2.COLOR_HSV2RGB)
+            r1 = col1[0][0][0]
+            g1 = col1[0][0][1]
+            b1 = col1[0][0][2]
+            r2 = col2[0][0][0]
+            b2 = col2[0][0][1]
+            g2 = col2[0][0][2]
+#            print col1, col2, r1, g2, b1, r2, g2, b2
             """* self.isVisible()
                 if hue <> None:
                     H = int(hue * saturation / 255.0 + (1 - saturation / 255.0) * 180 * (abs(np.imag(np.log((d))) / np.pi % 1.0)))
                 else:
             """
+            r = r1 * (1 - byDirection) + r2 * byDirection
+            g = g1 * (1 - byDirection) + g2 * byDirection
+            b = b1 * (1 - byDirection) + b2 * byDirection
             h = h1 * (1 - byDirection) + h2 * byDirection
             s = s1 * (1 - byDirection) + s2 * byDirection
             v = v1 * (1 - byDirection) + v2 * byDirection
+            col3 = cv2.cvtColor(np.uint8([[[int(r), int(g), int(b)]]]), cv2.COLOR_RGB2HSV)
+            h = float(col3[0][0][0])
+            s = float(col3[0][0][1])
+            v = int(col3[0][0][2])
+#            print r, g, b, col3, h, s, v
             self.color = (h, s, v)
             self.split = split
         def draw(self, img):
@@ -219,7 +236,8 @@ class rhombi():
             points2 = points[2:] + points[0:1]
             h, s, v = self.color
             vs = (255 * self.split + (1 - self.split) * v) * self.isVisible()
-            v = v * self.isVisible()
+            v = int(v * self.isVisible())
+#            print h, s, v
             cv2.fillConvexPoly(img, np.array(points1), (h, s, v))
             cv2.fillConvexPoly(img, np.array(points2), (h, s, vs))
 

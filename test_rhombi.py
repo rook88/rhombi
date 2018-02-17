@@ -52,10 +52,8 @@ End
 (* 6720 0.00375)
 (* 24 0.00375)
 (/ 1 0.00375)
+(* 24 (/ 1 6720.0))
 """
-
-angleDelta = 0.0
-angleDelta2 = 0.00375
 
 for t in ts:
     i += 1
@@ -72,17 +70,15 @@ for t in ts:
         angle = 0.2 * angle2 + 0.8 * angle1
         print angle1, angle2, angle
     lineCount = int(intro * lineCountMin + introLeft * lineCountMax)
-    angleDelta2 *= 0.999 
-    angleDelta += angleDelta2
-    angleDelta = -intro * 16 
+    angleDelta = - 8 * intro * intro 
     if outro < 0.2:
-        lineCount = 90
+        lineCount = 80
     if lineCountRaw < lineCount - lineCountDelta / 2:
         lineCountRaw += lineCountDelta
     if testT or testAngle:
         lineCountRaw = lineCount
     if outro < 0.2:
-        normalLength = edgeLength * lineCountMin / lineCountMax * (1 + (0.2 - outro) * 5)
+        normalLength = edgeLength * lineCountMin / lineCountMax * (1 + (0.2 - outro) * 10)
     else:
         normalLength = edgeLength * lineCountMin / lineCountRaw * np.clip(1.9 - intro, 0.9, 1.0) 
         print normalLength, edgeLength, lineCountMin, lineCountRaw
@@ -93,10 +89,10 @@ for t in ts:
         radiusMin = radiusMinMax * (1 - np.clip((introLeft - 0.6) * 5, 0.0, 2.0))
         faceSplit = 0.0
         edgeHue = 180 * introLeft * 4 % 180
-        faceHue = edgeHue + 15 * np.sin(2 * np.pi * 7 * introLeft)
+        faceHue = (edgeHue + 10 * np.sin(2 * np.pi * 7 * introLeft)) % 180
         edgeColor = (edgeHue, 255, 255)
         faceByDirection = 0
-        value = 120
+        value = 130
         faceColor = (faceHue, saturation, value - value * (1 - irrationality) * introLeft)
         edgeThickness = 30.0 * intro + 5 * introLeft
         verticeRadius = edgeThickness * (1 + intro * irrationality)
