@@ -49,10 +49,13 @@ End
 
 0.01 = 67 frames 2.8 seconds
 
+(* 6720 0.00375)
+(* 24 0.00375)
+(/ 1 0.00375)
 """
 
 angleDelta = 0.0
-angleDelta2 = 0.003
+angleDelta2 = 0.00375
 
 for t in ts:
     i += 1
@@ -66,11 +69,12 @@ for t in ts:
         angle2 = 1.7 - angle
     if angle > 0.8:
         angle1 = 0.8 + np.sin((angle - 0.8) * 10 * np.pi) / np.pi / 10
-        angle = 0.8 * angle2 + 0.2 * angle1
+        angle = 0.2 * angle2 + 0.8 * angle1
         print angle1, angle2, angle
     lineCount = int(intro * lineCountMin + introLeft * lineCountMax)
-    angleDelta2 *= 0.9995 
+    angleDelta2 *= 0.999 
     angleDelta += angleDelta2
+    angleDelta = -intro * 16 
     if outro < 0.2:
         lineCount = 90
     if lineCountRaw < lineCount - lineCountDelta / 2:
@@ -89,11 +93,11 @@ for t in ts:
         radiusMin = radiusMinMax * (1 - np.clip((introLeft - 0.6) * 5, 0.0, 2.0))
         faceSplit = 0.0
         edgeHue = 180 * introLeft * 4 % 180
-        faceHue = edgeHue + 30 * np.sin(2 * np.pi * 7 * introLeft)
+        faceHue = edgeHue + 15 * np.sin(2 * np.pi * 7 * introLeft)
         edgeColor = (edgeHue, 255, 255)
         faceByDirection = 0
         value = 120
-        faceColor = (faceHue, saturation, value * irrationality)
+        faceColor = (faceHue, saturation, value - value * (1 - irrationality) * introLeft)
         edgeThickness = 30.0 * intro + 5 * introLeft
         verticeRadius = edgeThickness * (1 + intro * irrationality)
     else:
