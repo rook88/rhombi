@@ -18,6 +18,8 @@ testAngle = None
 testAngleMin = None
 testAngleMax = None
 testLineCount = None
+testLineCountMin = None
+testLineCountMax = None
 testFrameCount = None
 resolution = None
 
@@ -117,13 +119,20 @@ print "lineCount = ", lineCount
 
 
 class line():
-    def __init__(self, somePoint = None, directionPoint = None, normalLength = 1.0, visible = 1.0):
+    def __init__(self, somePoint = None, directionPoint = None, normalLength = 1.0, visible = 1.0, angle = None, offset = None):
         if somePoint <> None and directionPoint <> None:
             self.somePoint = somePoint
             self.direction = directionPoint / abs(directionPoint)
-            self.angle = np.imag(np.log(directionPoint))
+            self.angle = np.imag(np.log(directionPoint)) / 2 / np.pi
             self.normalLength = normalLength
             self.visible = visible
+        if angle <> None and offset <> None:
+            self.direction = np.exp(angle * 2j * np.pi) 
+            self.somePoint = self.direction * offset / 1j
+            self.angle = angle
+            self.normalLength = normalLength
+            self.visible = visible
+
     def getNormal(self):
         return self.direction / np.exp(rightAngle * 1j) * self.normalLength * self.visible
     def isVisible(self):
@@ -149,10 +158,18 @@ def intersection(l1, l2):
             return ret
 
 def position(l, x):
-    if np.imag((x - l.somePoint) / l.direction) >= 0:
-        return 0
+    r = 9.0
+    distance = np.imag((x - l.somePoint) / l.direction)
+    pos = np.exp(-distance * r) / (1 + np.exp(-distance * r)) 
+    pos = np.round(pos, 3)
+    if distance >= 2:
+        return "0", 0
+    elif distance <= -2:
+        return "1", 1
+    elif distance >= 0:
+        return "0", pos
     else:
-        return 1
+        return "1", pos
 
 def getEmptyImg():
     return np.zeros((imgHeight,imgWidth,3), np.uint8)
@@ -164,15 +181,16 @@ class rhombi():
     vertices = {}
 
     @staticmethod
-    def genFace(faceKey, lines = None):
+    def genFace(faceKey, faceVector, lines = None):
         if faceKey in rhombi.faces:
             return rhombi.faces[faceKey]
         else:
-            return rhombi.face(faceKey, lines)
+            return rhombi.face(faceKey, faceVector, lines)
 
     class face():
-        def __init__(self, faceKey, lines = None):
+        def __init__(self, faceKey, faceVector, lines = None):
             self.faceKey = faceKey
+            self.faceVector = faceVector
             self.lines = lines
             e1 = rhombi.genEdge(faceKey.replace('a', 'x').replace('b', '0'), self)
             e2 = rhombi.genEdge(faceKey.replace('a', 'x').replace('b', '1'), self)
@@ -213,7 +231,7 @@ class rhombi():
 #            print col1, col2, r1, g2, b1, r2, g2, b2
             """* self.isVisible()
                 if hue <> None:
-                    H = int(hue * saturation / 255.0 + (1 - saturation / 255.0) * 180 * (abs(np.imag(np.log((d))) / np.pi % 1.0)))
+                    H = int(hue * saturation / 255.0 + (1 - saturation / 255.0) * 180 (abs(np.imag(np.log((d))) / np.pi % 1.0)))
                 else:
             """
             r = r1 * (1 - byDirection) + r2 * byDirection
@@ -240,6 +258,26 @@ class rhombi():
 #            print h, s, v
             cv2.fillConvexPoly(img, np.array(points1), (h, s, v))
             cv2.fillConvexPoly(img, np.array(points2), (h, s, vs))
+        def drawSmooth(self, img):
+            p = 0.0
+            for i in range(len(rhombi.lines)):
+                n = rhombi.lines[i].getNormal()
+                if self.faceVector[i] == 'a':
+                    posA = n
+                elif self.faceVector[i] == 'b':
+                    posB = n
+                else:
+                    p += n * self.faceVector[i]
+            positions = [p, p + posA, p + posA + posB, p + posB]
+#            print self.faceVector
+#            print positions, p, posA, posB
+            points = [z2imgPoint(pos) for pos in positions]
+            cv2.fillConvexPoly(img, np.array(points), self.color)
+            cv2.line(img = img, pt1 = points[0], pt2 = points[1], color = (0,0,0), thickness = 20)
+            cv2.line(img = img, pt1 = points[1], pt2 = points[2], color = (0,0,0), thickness = 20)
+            cv2.line(img = img, pt1 = points[2], pt2 = points[3], color = (0,0,0), thickness = 20)
+            cv2.line(img = img, pt1 = points[3], pt2 = points[0], color = (0,0,0), thickness = 20)
+            
 
     @staticmethod
     def genEdge(edgeKey, face):
@@ -342,14 +380,20 @@ class rhombi():
                         raise ValueError("multiple lines intersect at same point", p)
                     previousIntersections.append(p)
                     faceKey = ""
+                    faceVector = []
                     for i3 in range(len(lines)):
                         if i3 == i1:
                             faceKey += "a"
+                            faceVector.append("a")
                         elif i3 == i2:
                             faceKey += "b"
+                            faceVector.append("b")
                         else:
-                            faceKey += str(position(lines[i3], p))
-                    f = rhombi.genFace(faceKey, (lines[i1], lines[i2]))
+                            posStr, pos = position(lines[i3], p)
+                            faceKey += posStr
+                            faceVector.append(pos)
+#                    print faceKey, faceVector
+                    f = rhombi.genFace(faceKey, faceVector, (lines[i1], lines[i2]))
     
         self.faces = rhombi.faces
         self.edges = rhombi.edges
@@ -359,7 +403,7 @@ class rhombi():
         if not saturation:
             saturation = 255
         if not edgeColor:
-            edgeColor = (hue, saturation, 0)
+            edgeColor = (hue, saturation, value)
         if not faceColor:
             faceColor = (hue, saturation , value)
         for faceKey, face in self.faces.items():
@@ -370,15 +414,20 @@ class rhombi():
             vertice.setColor(color = edgeColor, radius = verticeRadius)
 
 
-    def getImg(self, hue = None, saturation = None, edgeColor = None, faceColor = None, faceSplit = None, verticeRadius = 0, verticeColor = (0, 0, 255)):
+    def getImg(self, smooth = False):
         img =  getEmptyImg()
         img[:,:] = backgroundColor
         for faceKey, face in self.faces.items():
-            face.draw(img)
+            if smooth:
+                face.drawSmooth(img)
+            else:
+                face.draw(img)
         for edgeKey, edge in self.edges.items():
-            edge.draw(img)
+            if not smooth:
+                edge.draw(img)
         for verticeKey, vertice in self.vertices.items():
-            vertice.draw(img)
+            if not smooth:
+                vertice.draw(img)
         return img
 
     def __str__(self):
@@ -415,8 +464,8 @@ def drawLines(lines):
     img =  np.zeros((imgHeight,imgWidth,3), np.uint8)
     img[:,:] = backgroundColor
     for line in lines:
-        pt1 = (line.somePoint - 3 * line.direction) * 1000
-        pt2 = (line.somePoint + 3 * line.direction) * 1000
+        pt1 = (line.somePoint - 30 * line.direction) * 100
+        pt2 = (line.somePoint + 30 * line.direction) * 100
         cv2.line(img = img, pt1 = z2imgPoint(pt1), pt2 = z2imgPoint(pt2), color = (255, 255, 255), thickness = 10)
     return img
 
