@@ -35,11 +35,11 @@ frameNumber = 0
 for t in ts:
     frameNumber += 1
     t1 = np.sin(np.pi * t) ** 2
-    angle = 0.75  * (1 - t1) + 0.6666666666666 * t1
+    angle = 0.40  * (1 - t1) + 0.333333333 * t1
     print frameNumber
     lines = []
     for i in range(rhombi.lineCount):
-        line = rhombi.line(offset = i, angle = i * angle, normalLength = 400)
+        line = rhombi.line(offset = i - (1 - t1) * (i % 5) - 1.8, angle = i * angle, normalLength = 500)
         lines.append(line)
     r = rhombi.rhombi(lines)
     r.setColors(hue = 60, value = 255, saturation = 255, faceByDirection = 1.0)
@@ -48,6 +48,7 @@ for t in ts:
     img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
     img = cv2.blur(img, (5, 5))
     img = cv2.resize(img, (rhombi.width, rhombi.height))
+    img = img[:, 280:1000, :]
     if rhombi.frameCount < 10:
         cv2.imshow('image',img)
         cv2.waitKey(0)
