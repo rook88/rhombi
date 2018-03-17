@@ -22,8 +22,9 @@ testLineCountMin = None
 testLineCountMax = None
 testFrameCount = None
 resolution = None
+parDrawLines = False
 
-opts, args = getopt.getopt(sys.argv[1:], None, ['testmode', 'file=', 'angle=','anglemin=','anglemax=', 'linecount=', 'linecountmin=', 'linecountmax=', 'framecount=', 'testtime=', 'resolution=', 'edgelength='])
+opts, args = getopt.getopt(sys.argv[1:], None, ['testmode', 'file=', 'angle=','anglemin=','anglemax=', 'linecount=', 'linecountmin=', 'linecountmax=', 'framecount=', 'testtime=', 'resolution=', 'edgelength=', 'drawlines'])
 
 for o, a in opts:
     if o == '--testmode':
@@ -50,13 +51,17 @@ for o, a in opts:
         testFrameCount = int(a)
     if o == '--edgelength':
         edgeLength = int(a)
-        
+    if o == '--drawlines':
+        parDrawLines =  True
+
 (width, height) = (640, 480)
 if resolution:
     if resolution == '1080p':
         (width, height) = (1920, 1080)
     if resolution == '720p':
         (width, height) = (1280, 720)
+    if 'x' in resolution:
+        (width, height) = [int(s) for s in resolution.split('x')]
 
 if testLineCount:
     lineCount = testLineCount
@@ -116,6 +121,7 @@ print "angleMin = ", angleMin
 print "outputFile = ", outputFile
 print "edgeLength = ", edgeLength
 print "lineCount = ", lineCount
+print "parDrawLines = ", parDrawLines
 
 
 class line():
@@ -202,6 +208,7 @@ class rhombi():
             v4 = rhombi.genVertice(faceKey.replace('a', '1').replace('b', '0'))
             self.edges = [e1, e2, e3, e4]
             self.vertices = [v1, v2, v3, v4]
+            self.center = (z2imgPoint(v1.position)[0] + z2imgPoint(v3.position)[0]) / 2, (z2imgPoint(v1.position)[1] + z2imgPoint(v3.position)[1]) / 2
             rhombi.faces[faceKey] = self
         def __str__(self):
             return "face:" + self.faceKey + str([str(v.position) for v in self.vertices])
@@ -213,8 +220,8 @@ class rhombi():
         def isVisible(self):
             return self.lines[0].isVisible() * self.lines[1].isVisible() 
         def getShape(self):
-            return lines[0].getNormal() / lines[1].getNormal() 
-        def setColor(self, color, split, byDirection = 0.0):
+            return abs(np.real(self.lines[0].getNormal() / self.lines[1].getNormal() ))
+        def setColor(self, color, split, byDirection = 0.0, byFunction = None):
             h1, s1, v1 = color
             col1 = cv2.cvtColor(np.uint8([[[int(h1), int(s1), int(v1)]]]), cv2.COLOR_HSV2RGB)
             d = self.getDirection()
@@ -244,7 +251,8 @@ class rhombi():
             h = float(col3[0][0][0])
             s = float(col3[0][0][1])
             v = int(col3[0][0][2])
-#            print r, g, b, col3, h, s, v
+            if byFunction:
+                (h, s, v) = byFunction(self.faceKey)
             self.color = (h, s, v)
             self.split = split
         def draw(self, img):
@@ -399,7 +407,7 @@ class rhombi():
         self.edges = rhombi.edges
         self.vertices = rhombi.vertices
     
-    def setColors(self, hue = None, saturation = None, value = None, faceColor = None, faceSplit = 0.0, faceByDirection = 0.0, edgeColor = None, edgeThickness = None, verticeRadius = 10):
+    def setColors(self, hue = None, saturation = None, value = None, faceColor = None, faceSplit = 0.0, faceByDirection = 0.0, faceByFunction = None, edgeColor = None, edgeThickness = None, verticeRadius = 10):
         if not saturation:
             saturation = 255
         if not edgeColor:
@@ -407,7 +415,7 @@ class rhombi():
         if not faceColor:
             faceColor = (hue, saturation , value)
         for faceKey, face in self.faces.items():
-            face.setColor(color = faceColor, split = faceSplit, byDirection = faceByDirection)
+            face.setColor(color = faceColor, split = faceSplit, byDirection = faceByDirection, byFunction = faceByFunction)
         for edgeKey, edge in self.edges.items():
             edge.setColor(color = edgeColor, thickness = edgeThickness)
         for verticeKey, vertice in self.vertices.items():
