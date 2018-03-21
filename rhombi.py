@@ -218,10 +218,15 @@ class rhombi():
 #                ret = -ret
             return ret
         def isVisible(self):
-            return self.lines[0].isVisible() * self.lines[1].isVisible() 
+            return self.lines[0].isVisible() * self.lines[1].isVisible()
+        def isRhombus(self):
+            if self.lines[0].normalLength == self.lines[1].normalLength:
+                return True
+            else:
+                return False
         def getShape(self):
             return abs(np.real(self.lines[0].getNormal() / self.lines[1].getNormal() ))
-        def setColor(self, color, split, byDirection = 0.0, byFunction = None):
+        def setColor(self, color, split, byDirection = 0.0, byFunction = None, onlyRhombus = False):
             h1, s1, v1 = color
             col1 = cv2.cvtColor(np.uint8([[[int(h1), int(s1), int(v1)]]]), cv2.COLOR_HSV2RGB)
             d = self.getDirection()
@@ -253,6 +258,9 @@ class rhombi():
             v = int(col3[0][0][2])
             if byFunction:
                 (h, s, v) = byFunction(self.faceKey)
+            if onlyRhombus:
+                if not self.isRhombus():
+                    (h, s, v) = (0, 0, 50)
             self.color = (h, s, v)
             self.split = split
         def draw(self, img):
@@ -407,7 +415,7 @@ class rhombi():
         self.edges = rhombi.edges
         self.vertices = rhombi.vertices
     
-    def setColors(self, hue = None, saturation = None, value = None, faceColor = None, faceSplit = 0.0, faceByDirection = 0.0, faceByFunction = None, edgeColor = None, edgeThickness = None, verticeRadius = 10):
+    def setColors(self, hue = None, saturation = None, value = None, faceColor = None, faceSplit = 0.0, faceByDirection = 0.0, faceByFunction = None, edgeColor = None, edgeThickness = None, verticeRadius = 10, faceOnlyRhombus = False):
         if not saturation:
             saturation = 255
         if not edgeColor:
@@ -415,7 +423,7 @@ class rhombi():
         if not faceColor:
             faceColor = (hue, saturation , value)
         for faceKey, face in self.faces.items():
-            face.setColor(color = faceColor, split = faceSplit, byDirection = faceByDirection, byFunction = faceByFunction)
+            face.setColor(color = faceColor, split = faceSplit, byDirection = faceByDirection, byFunction = faceByFunction, onlyRhombus = faceOnlyRhombus)
         for edgeKey, edge in self.edges.items():
             edge.setColor(color = edgeColor, thickness = edgeThickness)
         for verticeKey, vertice in self.vertices.items():

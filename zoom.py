@@ -35,22 +35,23 @@ p1 = +1j
 lines3 = [rhombi.line(somePoint = d * 1j, directionPoint = d, normalLength = 500) for d in directions3]
 lines5 = [rhombi.line(somePoint = d * 1j, directionPoint = d, normalLength = 500) for d in directions5]
 """
-p0 = (+1j + 1) / 100.0
-p1 = (-3j + 2) / 100.0
-p2 = (+2j - 3) / 100.0
+p0 = (+1j + 1) / 10000.0
+p1 = (-3j + 2) / 10000.0
+p2 = (+2j - 3) / 10000.0
+
 
 stars = []
-stars.append(rhombi.genStar(12, angle = 1.0 / 3, center = p0, radiusMin = -0.99))
-stars.append(rhombi.genStar(12, angle = 1.0 / 7, center = p2, radiusMin = -0.99))
-stars.append(rhombi.genStar(12, angle = 1.0 / 4, center = p1, radiusMin = 0.01))
-stars.append(rhombi.genStar(12, angle = 1.0 / 5, radiusMin = -0.99))
+stars.append(rhombi.genStar(rhombi.lineCount, angle = 1.0 / 3, center = p0, radiusMin = -0.99))
+stars.append(rhombi.genStar(rhombi.lineCount, angle = 1.0 / 7, center = p2, radiusMin = -0.99))
+stars.append(rhombi.genStar(rhombi.lineCount, angle = 1.0 / 4, center = p1, radiusMin = -0.99))
+stars.append(rhombi.genStar(rhombi.lineCount, angle = 1.0 / 5, radiusMin = -0.99))
 
 starCount = len(stars)
 print "Star count = {}".format(starCount)
 angleDelta = np.exp(2j * np.pi / starCount)
 print "Angle delta = {}".format(angleDelta)
 
-sideLength = 400
+sideLength = 500
 
 frameNumber = 0
 for t in ts:
@@ -61,10 +62,10 @@ for t in ts:
     i = 0
     for star in stars:
         a = angle * angleDelta ** i
-        visible = np.clip(np.real(a), 0, 1)
-        print "i = {}, a = {}, visible = {}".format(i, a, visible)
+        visible = np.clip(np.real(a), 0, 1) ** 2
+#        print "i = {}, a = {}, visible = {}".format(i, a, visible)
         for line in star:
-            line.normalLength = 1 + int(sideLength * visible)
+            line.normalLength = 0.01 + sideLength * visible
             lines.append(line)
         i += 1
 
@@ -72,7 +73,7 @@ for t in ts:
         img = rhombi.drawLines(lines)
     else:
         r = rhombi.rhombi(lines)
-        r.setColors(hue = 60, value = 255, saturation = 255, faceByDirection = 1.0, edgeColor = (0,0,0))
+        r.setColors(hue = 60, value = 255, saturation = 255, faceByDirection = 1.0, edgeColor = (0,0,0), edgeThickness = 25, faceOnlyRhombus = True)
         img = r.getImg(smooth = False)
     img = cv2.cvtColor(img, cv2.COLOR_HSV2RGB)
     img = cv2.blur(img, (5, 5))
