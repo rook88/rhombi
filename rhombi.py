@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 import getopt, sys
-
+import copy
 
 fullAngle = 2 * np.pi
 a2pi = 2 * np.pi * 1j
@@ -144,7 +144,7 @@ class line():
     def isVisible(self):
         return self.visible
     def __str__(self):
-        return "Line somePoint = {} angle = {} direction = {}".format(self.somePoint, self.angle / fullAngle, self.direction)
+        return "Line somePoint = {} angle = {} direction = {} normaLength = {}".format(self.somePoint, self.angle / fullAngle, self.direction, self.normalLength)
 
 def z2xy(z):
     return (np.real(z), np.imag(z))
@@ -180,7 +180,7 @@ def position(l, x):
 def getEmptyImg():
     return np.zeros((imgHeight,imgWidth,3), np.uint8)
 
-class rhombi():
+class rhombiCl():
 
     faces = {}
     edges = {} 
@@ -188,28 +188,28 @@ class rhombi():
 
     @staticmethod
     def genFace(faceKey, faceVector, lines = None):
-        if faceKey in rhombi.faces:
-            return rhombi.faces[faceKey]
+        if faceKey in rhombiCl.faces:
+            return rhombiCl.faces[faceKey]
         else:
-            return rhombi.face(faceKey, faceVector, lines)
+            return rhombiCl.face(faceKey, faceVector, lines)
 
     class face():
         def __init__(self, faceKey, faceVector, lines = None):
             self.faceKey = faceKey
             self.faceVector = faceVector
             self.lines = lines
-            e1 = rhombi.genEdge(faceKey.replace('a', 'x').replace('b', '0'), self)
-            e2 = rhombi.genEdge(faceKey.replace('a', 'x').replace('b', '1'), self)
-            e3 = rhombi.genEdge(faceKey.replace('a', '1').replace('b', 'x'), self)
-            e4 = rhombi.genEdge(faceKey.replace('a', '0').replace('b', 'x'), self)
-            v1 = rhombi.genVertice(faceKey.replace('a', '0').replace('b', '0'))
-            v2 = rhombi.genVertice(faceKey.replace('a', '0').replace('b', '1'))
-            v3 = rhombi.genVertice(faceKey.replace('a', '1').replace('b', '1'))
-            v4 = rhombi.genVertice(faceKey.replace('a', '1').replace('b', '0'))
+            e1 = rhombiCl.genEdge(faceKey.replace('a', 'x').replace('b', '0'), self)
+            e2 = rhombiCl.genEdge(faceKey.replace('a', 'x').replace('b', '1'), self)
+            e3 = rhombiCl.genEdge(faceKey.replace('a', '1').replace('b', 'x'), self)
+            e4 = rhombiCl.genEdge(faceKey.replace('a', '0').replace('b', 'x'), self)
+            v1 = rhombiCl.genVertice(faceKey.replace('a', '0').replace('b', '0'))
+            v2 = rhombiCl.genVertice(faceKey.replace('a', '0').replace('b', '1'))
+            v3 = rhombiCl.genVertice(faceKey.replace('a', '1').replace('b', '1'))
+            v4 = rhombiCl.genVertice(faceKey.replace('a', '1').replace('b', '0'))
             self.edges = [e1, e2, e3, e4]
             self.vertices = [v1, v2, v3, v4]
             self.center = (z2imgPoint(v1.position)[0] + z2imgPoint(v3.position)[0]) / 2, (z2imgPoint(v1.position)[1] + z2imgPoint(v3.position)[1]) / 2
-            rhombi.faces[faceKey] = self
+            rhombiCl.faces[faceKey] = self
         def __str__(self):
             return "face:" + self.faceKey + str([str(v.position) for v in self.vertices])
         def getDirection(self):
@@ -263,9 +263,10 @@ class rhombi():
                     (h, s, v) = (0, 0, 50)
             self.color = (h, s, v)
             self.split = split
-        def draw(self, img):
+        def draw(self, img, drawAlsoEdges = False, offset = np.array([0, 0])):
             vertices = self.vertices
             points = [z2imgPoint(v.position) for v in vertices]
+            points = [p + offset for p in points]
             points1 = points[0:-1] 
             points2 = points[2:] + points[0:1]
             h, s, v = self.color
@@ -274,10 +275,13 @@ class rhombi():
 #            print h, s, v
             cv2.fillConvexPoly(img, np.array(points1), (h, s, v))
             cv2.fillConvexPoly(img, np.array(points2), (h, s, vs))
+            if drawAlsoEdges:
+                for edge in self.edges:
+                    edge.draw(img, offset)
         def drawSmooth(self, img):
             p = 0.0
-            for i in range(len(rhombi.lines)):
-                n = rhombi.lines[i].getNormal()
+            for i in range(len(rhombiCl.lines)):
+                n = rhombiCl.lines[i].getNormal()
                 if self.faceVector[i] == 'a':
                     posA = n
                 elif self.faceVector[i] == 'b':
@@ -286,7 +290,6 @@ class rhombi():
                     p += n * self.faceVector[i]
             positions = [p, p + posA, p + posA + posB, p + posB]
 #            print self.faceVector
-#            print positions, p, posA, posB
             points = [z2imgPoint(pos) for pos in positions]
             cv2.fillConvexPoly(img, np.array(points), self.color)
             cv2.line(img = img, pt1 = points[0], pt2 = points[1], color = (0,0,0), thickness = 20)
@@ -297,24 +300,24 @@ class rhombi():
 
     @staticmethod
     def genEdge(edgeKey, face):
-        if edgeKey in rhombi.edges:
-            e = rhombi.edges[edgeKey]
+        if edgeKey in rhombiCl.edges:
+            e = rhombiCl.edges[edgeKey]
             e.faces.append(face)
             return e 
         else:
-            ret = rhombi.edge(edgeKey, face)
-            rhombi.edges[edgeKey] = ret
+            ret = rhombiCl.edge(edgeKey, face)
+            rhombiCl.edges[edgeKey] = ret
             return ret
 
     class edge():
         def __init__(self, edgeKey, face):
             self.edgeKey = edgeKey
             self.faces = [face]
-            v1 = rhombi.genVertice(edgeKey.replace('x', '0'))
-            v2 = rhombi.genVertice(edgeKey.replace('x', '1'))
+            v1 = rhombiCl.genVertice(edgeKey.replace('x', '0'))
+            v2 = rhombiCl.genVertice(edgeKey.replace('x', '1'))
             self.vertices = [v1, v2]
             self.split = False
-            rhombi.edges[edgeKey] = self
+            rhombiCl.edges[edgeKey] = self
         def __str__(self):
             return self.edgeKey + " " + str(self.split)
         def setColor(self, color, thickness):
@@ -348,30 +351,31 @@ class rhombi():
                 self.color = (0, 0, 0)
             else:
                 self.color = None
-        def draw(self, img):
+        def draw(self, img, offset = np.array([0, 0])):
 #            imgTemp = getEmptyImg()
             if self.color <> None:
                 v1, v2 = self.vertices
-                pt1, pt2 = z2imgPoint(v1.position), z2imgPoint(v2.position)
+                pt1 = tuple(z2imgPoint(v1.position) + offset)
+                pt2 = tuple(z2imgPoint(v2.position) + offset)
                 cv2.line(img = img, pt1 = pt1, pt2 = pt2, color = self.color, thickness = self.thickness)
 #                img = cv2.add(img, imgTemp)
 
     @staticmethod
     def genVertice(verticeKey):
-        if verticeKey in rhombi.vertices:
-            return rhombi.vertices[verticeKey]
+        if verticeKey in rhombiCl.vertices:
+            return rhombiCl.vertices[verticeKey]
         else:
-            return rhombi.vertice(verticeKey)
+            return rhombiCl.vertice(verticeKey)
 
     class vertice():
         def __init__(self, verticeKey):
             self.verticeKey = verticeKey
             position = 0
-            for i in range(len(rhombi.lines)):
+            for i in range(len(rhombiCl.lines)):
                 if verticeKey[i] == '1':
-                    position += rhombi.lines[i].getNormal()
+                    position += rhombiCl.lines[i].getNormal()
             self.position = position
-            rhombi.vertices[verticeKey] = self
+            rhombiCl.vertices[verticeKey] = self
         def __str__(self):
             return 'vertice:' + self.verticeKey
         def setColor(self, color, radius):
@@ -383,10 +387,10 @@ class rhombi():
 
     def __init__(self, lines):
 
-        rhombi.lines = lines
-        rhombi.faces.clear()
-        rhombi.edges.clear()
-        rhombi.vertices.clear()
+        rhombiCl.lines = lines
+        rhombiCl.faces.clear()
+        rhombiCl.edges.clear()
+        rhombiCl.vertices.clear()
         previousIntersections = []
         for i1 in range(len(lines)):
             for i2 in range(i1 + 1, len(lines)):
@@ -409,12 +413,15 @@ class rhombi():
                             faceKey += posStr
                             faceVector.append(pos)
 #                    print faceKey, faceVector
-                    f = rhombi.genFace(faceKey, faceVector, (lines[i1], lines[i2]))
+                    f = rhombiCl.genFace(faceKey, faceVector, (lines[i1], lines[i2]))
     
-        self.faces = rhombi.faces
-        self.edges = rhombi.edges
-        self.vertices = rhombi.vertices
+        self.faces = rhombiCl.faces
+        self.edges = rhombiCl.edges
+        self.vertices = rhombiCl.vertices
     
+    def get(self):
+        return copy.deepcopy(self)
+
     def setColors(self, hue = None, saturation = None, value = None, faceColor = None, faceSplit = 0.0, faceByDirection = 0.0, faceByFunction = None, edgeColor = None, edgeThickness = None, verticeRadius = 10, faceOnlyRhombus = False):
         if not saturation:
             saturation = 255
