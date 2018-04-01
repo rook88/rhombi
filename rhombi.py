@@ -217,6 +217,22 @@ class rhombiCl():
 #            if np.real(ret) < 0:
 #                ret = -ret
             return ret
+        def getCopy(self):
+            ret = type('', (), {})() 
+            ret.center = np.array(self.center)
+            v1, v2, v3, v4 = self.vertices 
+            d1 = v1.position - v3.position
+            d2 = v2.position - v4.position
+            if abs(d1) > abs(d2):
+                ret.vectors = (d1, d2)
+                ret.direction = np.imag(np.log(d1))
+                ret.angle = abs(np.imag(np.log((v2.position - v1.position) / (v4.position - v1.position))))
+            else:
+                ret.vectors = (d2, d1)
+                ret.direction = np.imag(np.log(d2))
+                ret.angle = abs(np.imag(np.log((v1.position - v2.position) / (v3.position - v2.position))))
+            ret.color = self.color
+            return ret
         def isVisible(self):
             return self.lines[0].isVisible() * self.lines[1].isVisible()
         def isRhombus(self):
