@@ -1,3 +1,5 @@
+#C:\Users\Dell\Documents>python git\rhombi\rhombi\penroseDisk.py --edgelength 50 --resolution 800x800  --linecount 20  --framecount 60 --file penroseDisk.mp4
+
 import numpy as np
 import cv2
 import imageio
@@ -40,7 +42,6 @@ print lineDistanceB * 3 / np.cos(2 * np.pi / 20)
 print lineDistanceA * 2 / np.cos(2 * np.pi / 20 * 3)
 
 r = rhombi.rhombiCl(lines)
-#C:\Users\Dell\Documents>python git\rhombi\rhombi\penroseDisk.py --edgelength 50 --resolution 800x800  --linecount 20  --framecount 60 --file penroseDisk.mp4
 
 #for faceKey, face in r.faces.items():
 #    print face

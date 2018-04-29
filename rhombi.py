@@ -472,6 +472,7 @@ class rhombiCl():
     def __str__(self):
         return "Rhombi, faces = {}, edges = {}, vertices = {}".format(len(self.faces), len(self.edges), len(self.vertices))
 
+
 diskRadius = False
 diskOffset = 0
 def z2imgPoint(z):
