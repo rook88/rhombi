@@ -472,8 +472,21 @@ class rhombiCl():
     def __str__(self):
         return "Rhombi, faces = {}, edges = {}, vertices = {}".format(len(self.faces), len(self.edges), len(self.vertices))
 
+diskRadius = False
+diskOffset = 0
 def z2imgPoint(z):
-    return (imgWidth / 2 + int(np.real(z)), imgHeight / 2 - int(np.imag(z)))
+    if diskRadius:
+        z = z + diskOffset
+        r = abs(z)
+        d = z / r
+        r = r / diskRadius
+        r = r / np.sqrt(r*r + 1)
+        z = r * d
+        x = np.real(z)
+        y = np.imag(z)
+        return (int(imgWidth / 2 * (x + 1)), int(imgHeight / 2 * (y + 1)))
+    else:
+        return (imgWidth / 2 + int(np.real(z)), imgHeight / 2 - int(np.imag(z)))
 
 def genLines(ps, f, g = None):
     lines = []
@@ -503,8 +516,8 @@ def drawLines(lines):
     img =  np.zeros((imgHeight,imgWidth,3), np.uint8)
     img[:,:] = backgroundColor
     for line in lines:
-        pt1 = (line.somePoint - 30 * line.direction) * 100
-        pt2 = (line.somePoint + 30 * line.direction) * 100
+        pt1 = (line.somePoint - 30 * line.direction) * 300
+        pt2 = (line.somePoint + 30 * line.direction) * 300
         cv2.line(img = img, pt1 = z2imgPoint(pt1), pt2 = z2imgPoint(pt2), color = (255, 255, 255), thickness = 10)
     return img
 
