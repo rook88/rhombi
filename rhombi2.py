@@ -1,109 +1,76 @@
 import numpy as np
-# import cv2
-# import getopt, sys
-import copy
-# import argparse
+from PIL import Image, ImageDraw, ImageColor, ImageFilter
 
 fullAngle = 2 * np.pi
-a2pi = 2 * np.pi * 1j
+a2pi = np.pi * 1j
 rightAngle = 0.5 * np.pi
 origin = 0 + 0j
-
-frameCount = 3
-lineCount = 20
-edgeLength = 25 
-testMode = False
-outputFile = None
-testT = None
-testAngle = None
-testAngleMin = None
-testAngleMax = None
-testLineCount = None
-testLineCountMin = None
-testLineCountMax = None
-testFrameCount = None
 resolution = None
-parDrawLines = False
-"""
-# import argparse
-# parser = argparse.ArgumentParser()
-# parser.add_argument('--testMode', help='foo help', action='store_true')
-# parser.add_argument('--file', help='', default = 'temp.mp4')
-# args = parser.parse_args()
-"""
-
-width, height = (640, 480)
-if resolution is not None:
-    if resolution == '1080p':
-        (width, height) = (1920, 1080)
-    if resolution == '720p':
-        (width, height) = (1280, 720)
-    if 'x' in resolution:
-        (width, height) = [int(s) for s in resolution.split('x')]
-
-if testLineCount:
-    lineCount = testLineCount
-
-imgWidth = width * 5
-imgHeight= height * 5
-backgroundColor = (0, 0, 0)
-rhombusEdgeThickness = 10
-
 theta = (np.sqrt(5) - 1) / 2
-if testAngleMin:
-    angleMin = testAngleMin
-else:
-    angleMin = theta
+diskRadius = False
+diskOffset = 0
+unitIJ = 1 + 1j
+   
+class img():
+    def __init__(self, im = None, resolution = None, size = None, zoom = 1, pipe = False, color = "black"):
+        width, height = (480, 480)
+        if resolution is not None:
+            if resolution == '1080p':
+                (width, height) = (1920, 1080)
+            if resolution == '720p':
+                (width, height) = (1280, 720)
+            if 'x' in resolution:
+                (width, height) = [int(s) for s in resolution.split('x')]
+        if size is not None:
+            (width, height) = size
+        self.width = width 
+        self.height = height
+        self.scale = int(max(width, height) / 2)
+        if im is not None:
+            self.im = im
+        else:
+            self.im = Image.new("RGB", (width, height), color)
+        self.draw = ImageDraw.Draw(self.im)
+        self.zoom = zoom
+        self.pipe = pipe
+    def get(self):
+        return self.im
+    def getMask(self):
+        return self.im.convert("1")
+    def z2point(self, zIn, noPipe = False):
+        if self.pipe and not noPipe:
+            # print(zIn)
+            z = np.exp(zIn) / self.zoom 
+        else:
+            z = zIn / self.zoom
+        ret = (int(self.width / 2 + np.real(z) * self.scale), int(self.height / 2 + np.imag(z)  * self.scale))
+        # print(ret)
+        return ret
+    def drawPoint(self, z, radius = 0, color = "white"):
+        self.draw.ellipse((self.z2point(z - radius * 0.35 * unitIJ), self.z2point(z + radius * 0.35 * unitIJ)), color)
+    def drawEgde(self, z1, z2, color = "white"):
+        if abs(z1.imag) < np.pi and abs(z1.imag) > - np.pi:
+            self.draw.line((self.z2point(z1), self.z2point(z2)), color)
+    def drawLine(self, z1, z2, color = "white", thickness = 1):
+        self.draw.line((self.z2point(z1), self.z2point(z2)), color, thickness)
+    def drawPolygon(self, zs, color = "white", scale = 1):
+        self.draw.polygon([self.z2point(z * scale) for z in zs], fill = color)
+    def drawCircle(self, center, radius, color = "white"):
+        self.draw.ellipse((self.z2point(center - radius * unitIJ, noPipe = True), self.z2point(center + radius * unitIJ, noPipe = True)), fill = None, outline = color)
+    def drawAxes(self):
+        if self.pipe:
+            self.drawCircle(0, np.exp(np.pi), color = "red")
+        else:
+            self.drawLine(-self.zoom + np.pi * 1j, self.zoom + np.pi * 1j, color = "green")
+            self.drawLine(-self.zoom - np.pi * 1j, self.zoom - np.pi * 1j, color = "green")
+            # self.drawLine(-self.zoom, self.zoom)
+            # self.drawLine(-self.zoom * 1j, self.zoom * 1j)
+            self.drawLine(-self.zoom * 1j + np.pi, self.zoom * 1j + np.pi, color = "red")
+            self.drawLine(-self.zoom * 1j - 2 * np.pi, self.zoom * 1j - 2 * np.pi, color = "blue")
 
-if testAngleMax:
-    angleMax = testAngleMax
-else:
-    angleMax = 1 - (1 - angleMin) / 2
-
-if testLineCountMin:
-    lineCountMin = testLineCountMin
-else:
-    lineCountMin = 4
-
-if testLineCountMax:
-    lineCountMax = testLineCountMax
-else:
-    lineCountMax = 4
-
-
-if testFrameCount:
-    frameCount = testFrameCount
-
-ts = list(np.linspace(0, 1, frameCount))
-
-if testAngle:
-    t = (testAngle - angleMin) / (angleMax - angleMin)
-    ts = [t]
-    print("t = {}".format(t)) 
-    frameCount = 1
-
-if testFrameCount:
-    frameCount = testFrameCount
-
-if testT != None:
-    ts = [testT]
-    frameCount = 1
-
-
-"""
-print "frameCount = ", frameCount
-print "resolution = ", resolution
-print "ts = ", ts
-print "angleMax = ", angleMax
-print "angleMin = ", angleMin
-print "outputFile = ", outputFile
-print "edgeLength = ", edgeLength
-print "lineCount = ", lineCount
-print "parDrawLines = ", parDrawLines
-"""
 
 class line():
-    def __init__(self, somePoint = None, directionPoint = None, normalLength = 1.0, visible = 1.0, angle = None, offset = None):
+    def __init__(self, somePoint = None, directionPoint = None, normalLength = 0.1, visible = 1.0, angle = None, offset = None):
         if somePoint != None and directionPoint != None:
             self.somePoint = somePoint
             self.direction = directionPoint / abs(directionPoint)
@@ -122,7 +89,8 @@ class line():
     def isVisible(self):
         return self.visible
     def __str__(self):
-        return "Line somePoint = {} angle = {} direction = {} normaLength = {}".format(self.somePoint, self.angle / fullAngle, self.direction, self.normalLength)
+        return f"Line somePoint = {self.somePoint:+.2} angle = {self.angle / fullAngle:+.2} direction = {self.direction:+.2} normaLength = {self.normalLength:+.2}"
+
 
 def z2xy(z):
     return (np.real(z), np.imag(z))
@@ -165,17 +133,18 @@ class rhombiCl():
     vertices = {}
 
     @staticmethod
-    def genFace(faceKey, faceVector, lines = None):
+    def genFace(faceKey, faceVector, lines = None, ins = None):
         if faceKey in rhombiCl.faces:
             return rhombiCl.faces[faceKey]
         else:
-            return rhombiCl.face(faceKey, faceVector, lines)
+            return rhombiCl.face(faceKey, faceVector, lines, ins)
 
     class face():
-        def __init__(self, faceKey, faceVector, lines = None):
+        def __init__(self, faceKey, faceVector, lines = None, ins = None):
             self.faceKey = faceKey
             self.faceVector = faceVector
             self.lines = lines
+            self.index = ins
             e1 = rhombiCl.genEdge(faceKey.replace('a', 'x').replace('b', '0'), self)
             e2 = rhombiCl.genEdge(faceKey.replace('a', 'x').replace('b', '1'), self)
             e3 = rhombiCl.genEdge(faceKey.replace('a', '1').replace('b', 'x'), self)
@@ -186,10 +155,12 @@ class rhombiCl():
             v4 = rhombiCl.genVertice(faceKey.replace('a', '1').replace('b', '0'))
             self.edges = [e1, e2, e3, e4]
             self.vertices = [v1, v2, v3, v4]
-            self.center = (z2imgPoint(v1.position)[0] + z2imgPoint(v3.position)[0]) / 2, (z2imgPoint(v1.position)[1] + z2imgPoint(v3.position)[1]) / 2
+            self.center = (v1.position + v3.position) / 2
             rhombiCl.faces[faceKey] = self
         def __str__(self):
             return "face:" + self.faceKey + str([str(v.position) for v in self.vertices])
+        def getIndex(self):
+            return self.index
         def getDirection(self):
             ret = self.lines[0].getNormal() + self.lines[1].getNormal() 
 #            if np.real(ret) < 0:
@@ -257,21 +228,23 @@ class rhombiCl():
                     (h, s, v) = (0, 0, 50)
             self.color = (h, s, v)
             self.split = split
-        def draw(self, img, drawAlsoEdges = False, offset = np.array([0, 0])):
+        def draw(self, img, edgeColor = None, offset = 0, scale = 1, color = "white"):
             vertices = self.vertices
-            points = [z2imgPoint(v.position) for v in vertices]
-            points = [p + offset for p in points]
-            points1 = points[0:-1] 
-            points2 = points[2:] + points[0:1]
-            h, s, v = self.color
-            vs = (255 * self.split + (1 - self.split) * v) * self.isVisible()
-            v = int(v * self.isVisible())
+            positions = [v.getPosition() for v in vertices]
+            innerPositions = [v.getPosition() * 0.95 + 0.05 * self.center for v in vertices]
+            # h, s, v = self.color
+            # vs = (255 * self.split + (1 - self.split) * v) * self.isVisible()
+            # v = int(v * self.isVisible())
 #            print h, s, v
-            # cv2.fillConvexPoly(img, np.array(points1), (h, s, v))
-            # cv2.fillConvexPoly(img, np.array(points2), (h, s, vs))
-            if drawAlsoEdges:
-                for edge in self.edges:
-                    edge.draw(img, offset)
+            if edgeColor is not None:
+                img.drawPolygon(positions, color = edgeColor, scale = scale)
+                img.drawPolygon(innerPositions, color = color, scale = scale)
+            else:
+                img.drawPolygon(positions, color = color, scale = scale)
+        def drawEdges(self, img, edgeColor, offset = 0, scale = 1):
+            for edge in self.edges:
+                edge.draw(img, offset = offset, scale = scale, color = edgeColor)
+        
         def drawSmooth(self, img):
             p = 0.0
             for i in range(len(rhombiCl.lines)):
@@ -345,12 +318,12 @@ class rhombiCl():
                 self.color = (0, 0, 0)
             else:
                 self.color = None
-        def draw(self, img, offset = np.array([0, 0])):
+        def draw(self, img, offset = 0, scale = 1 + 0j, color = "white"):
 #            imgTemp = getEmptyImg()
-            if self.color != None:
-                v1, v2 = self.vertices
-                pt1 = tuple(z2imgPoint(v1.position) + offset)
-                pt2 = tuple(z2imgPoint(v2.position) + offset)
+            # if self.color != None:
+            v1, v2 = self.vertices
+            # print(v1.position, v2.position)
+            img.drawLine(v1.getPosition(scale) + offset, v2.getPosition(scale) + offset, color = color, thickness = 2)
                 # cv2.line(img = img, pt1 = pt1, pt2 = pt2, color = self.color, thickness = self.thickness)
 #                img = cv2.add(img, imgTemp)
 
@@ -375,9 +348,14 @@ class rhombiCl():
         def setColor(self, color, radius):
             self.color = color
             self.radius = int(radius)
+        def asPoint(self, zoom):
+            return z2imgPoint(self.position, zoom = zoom)
         def draw(self, img):
             pt = z2imgPoint(self.position)
             # cv2.circle(img, pt, self.radius, self.color, -1)
+        def getPosition(self, scale = 1 + 0j):
+            # print(type(self.position), self.position, scale)
+            return scale * self.position
 
     def __init__(self, lines):
 
@@ -407,7 +385,7 @@ class rhombiCl():
                             faceKey += posStr
                             faceVector.append(pos)
 #                    print faceKey, faceVector
-                    f = rhombiCl.genFace(faceKey, faceVector, (lines[i1], lines[i2]))
+                    f = rhombiCl.genFace(faceKey, faceVector, (lines[i1], lines[i2]), (i1, i2))
     
         self.faces = rhombiCl.faces
         self.edges = rhombiCl.edges
@@ -448,12 +426,10 @@ class rhombiCl():
         return img
 
     def __str__(self):
-        return "Rhombi, faces = {}, edges = {}, vertices = {}".format(len(self.faces), len(self.edges), len(self.vertices))
+        return f"Rhombi, faces = {len(self.faces)}, edges = {len(self.edges)}, vertices = {len(self.vertices)}"
 
 
-diskRadius = False
-diskOffset = 0
-def z2imgPoint(z):
+def z2imgPoint(z, diskRadius = False, zoom = 1.0):
     if diskRadius:
         z = z + diskOffset
         r = abs(z)
@@ -465,7 +441,7 @@ def z2imgPoint(z):
         y = np.imag(z)
         return (int(imgWidth / 2 * (x + 1)), int(imgHeight / 2 * (y + 1)))
     else:
-        return (imgWidth / 2 + int(np.real(z)), imgHeight / 2 - int(np.imag(z)))
+        return (int(imgWidth / 2 + (np.real(z * zoom))), int(imgHeight / 2 - np.imag(z * zoom)))
 
 def genLines(ps, f, g = None):
     lines = []
@@ -487,26 +463,24 @@ def drawImg(lines):
         drawRhombus(img, faceKey)
     for edgeKey in edgeFaces:
         drawEdge(img, edgeKey)
-
     return img
 
 
-def drawLines(lines):
-    img =  np.zeros((imgHeight,imgWidth,3), np.uint8)
-    img[:,:] = backgroundColor
+def drawLines(im, lines, length = 3000, color = "white", thickness = 1):
     for line in lines:
-        pt1 = (line.somePoint - 30 * line.direction) * 300
-        pt2 = (line.somePoint + 30 * line.direction) * 300
-        # cv2.line(img = img, pt1 = z2imgPoint(pt1), pt2 = z2imgPoint(pt2), color = (255, 255, 255), thickness = 10)
-    return img
+        im.drawLine(line.somePoint - length * line.direction, line.somePoint + length * line.direction, color = color, thickness = thickness)
 
-"""
-def genK(n):
-#    return 2.5 - 5.0 * n / frameCount
-    return 4.0 ** (1.0 * (frameCount - 1 - n) / (frameCount - 1)) * 7.0 ** (1.0 * n / (frameCount - 1))
-"""
-
-def genStar(lineCount, angle = (np.sqrt(5) - 1) / 2, angleDelta = 0.0, radiusMin = 0.0, radiusMax = 1.0, center = 0.0, time = None, normalLength = 1.0):
+def genLines(radii, angles, center = 0):
+    ret = []
+    for n in range(len(radii)):
+        a = angles[n] * a2pi
+        sp = np.exp(a) * radii[n] + center
+        d = 1j * np.exp(a)
+        l = line(sp, d, 1.0, 1.0)
+        ret.append(l)
+    return ret
+        
+def genStar(lineCount, angle = (np.sqrt(5) - 1) / 2, angleDelta = 0.0, radiusMin = 0.0, radiusMax = 1.0, center = 0.0, time = None, normalLength = 1.0, step = 1, radiusDelta = None, radii = None):
     if time != None:
         angleDelta *= time
     ret = []
@@ -515,9 +489,15 @@ def genStar(lineCount, angle = (np.sqrt(5) - 1) / 2, angleDelta = 0.0, radiusMin
     for n in range(int(np.ceil(lineCount))):
 #    for n in range(int(lineCount)):
         a = (angle * n + angleDelta) * a2pi
-        nrad = n 
+#         print(angle * n)
+        nrad = n - n % step
 #        r = (radiusMin * n + radiusMax * (lineCount - n)) / lineCount
-        r = (radiusMin * nrad + radiusMax * (lineCount - nrad)) / lineCount
+        if radiusDelta is None and radii is None:
+            r = (radiusMin * nrad + radiusMax * (lineCount - nrad)) / lineCount
+        elif radii is not None:
+            r = radii[n]
+        else:
+            r = (n * radiusDelta) % 1 - 0.5
         sp = np.exp(a) * r + center
         d = 1j * np.exp(a)
         if n + 1 > lineCount:
